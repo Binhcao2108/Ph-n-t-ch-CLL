@@ -177,8 +177,8 @@ export function processCLLData(
     const l2TimeRaw = row['Tg hoàn tất CLPS'] || row['Tg hoàn tất clps'] || row['TG Hoàn Tất CLPS'];
     const l2TimeDate = parseExcelDate(l2TimeRaw);
 
-    // L1 Fields
-    const notesL1 = getRowValue(row, ['Ghi chú', 'ghi chu', 'Note']);
+    // L2 note is taken from the CLL source: row
+    const notesL2 = getRowValue(row, ['Ghi chú', 'ghi chu', 'Note']);
     
     const inputStatusL1 = getRowValue(row, ['Tình trạng đầu vào', 'tình trạng đầu vào', 'status']);
     const errorElementL1 = getRowValue(row, ['Phần tử lỗi', 'phần tử lỗi', 'element']);
@@ -217,7 +217,8 @@ export function processCLLData(
       const matchTimeDate = parseExcelDate(matchTimeRaw) || l2TimeDate;
       const completedTimeL2 = formatDate(matchTimeDate);
 
-      const notesL2 = getRowValue(bestMatch, ['Ghi chú', 'ghi chu', 'Note']);
+      // L1 note is taken from the matching Dung Hen source: bestMatch
+      const notesL1 = getRowValue(bestMatch, ['Ghi chú', 'ghi chu', 'Note']);
       const inputStatusL2 = getRowValue(bestMatch, ['Tình trạng đầu vào', 'tình trạng đầu vào', 'status']);
       const errorElementL2 = getRowValue(bestMatch, ['Phần tử lỗi', 'phần tử lỗi', 'element']);
       const errorCauseL2 = getRowValue(bestMatch, ['Nguyên nhân lỗi', 'nguyên nhân lỗi', 'cause']);
@@ -258,7 +259,7 @@ export function processCLLData(
         
         completedTimeL1,
         completedTimeL1Raw: l1TimeRaw,
-        notesL1,
+        notesL1: '',
         inputStatusL1,
         errorElementL1,
         errorCauseL1,
@@ -266,7 +267,7 @@ export function processCLLData(
         
         completedTimeL2,
         completedTimeL2Raw: l2TimeRaw,
-        notesL2: '',
+        notesL2,
         inputStatusL2: '',
         errorElementL2: '',
         errorCauseL2: '',
