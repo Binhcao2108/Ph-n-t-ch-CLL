@@ -222,8 +222,8 @@ export default function App() {
               <Sparkles className="h-3 w-3" />
               Công cụ tự động hóa QA
             </span>
-            <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900">
-              Phân Tích CLL
+            <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 block">
+              KTCN
             </h2>
             <p className="text-slate-600 text-xs mt-2 font-medium leading-relaxed">
               Tải lên báo cáo CLL và các báo cáo ĐÚNG HẸN tháng mới nhất cùng tháng liền kề trước đó. Hệ thống sẽ kết xuất tự động dịch chuyển chất lượng báo hỏng, tổng hợp phiếu lần 1 - lần 2 và đối chiếu chênh lệch chính xác theo thời điểm phát sinh checklist (CLPS).
@@ -378,7 +378,7 @@ export default function App() {
       {/* Solid footer with human label */}
       <footer className="bg-white border-t-2 border-slate-900 mt-auto py-6">
         <div className="max-w-7xl mx-auto px-4 text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest font-mono">
-          <p>© 2026 - Phân Tích CLL. Tác vụ được thực thi trực tiếp trên trình duyệt.</p>
+          <p>© 2026 - KTCN. Tác vụ được thực thi trực tiếp trên trình duyệt.</p>
         </div>
       </footer>
     </div>

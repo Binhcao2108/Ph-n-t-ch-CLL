@@ -1,5 +1,5 @@
 {
-  "name": "Phân Tích CLL",
+  "name": "KTCN",
   "description": "Ứng dụng tự động ghép dữ liệu CLL và đối chiếu ĐÚNG HẸN tháng T & T-1, xuất file Excel tổng hợp và hiển thị dashboard thống kê.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

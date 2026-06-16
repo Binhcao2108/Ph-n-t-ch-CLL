@@ -32,7 +32,7 @@ export default function Navbar() {
             </div>
             <div>
               <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                Phân Tích CLL
+                KTCN
               </h1>
               <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                 Phân tích chất lượng xử lý tự động
