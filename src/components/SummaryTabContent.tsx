@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import DashboardStats from './DashboardStats';
 import { MergedRecord } from '../types';
 import { calculateStatistics } from '../utils/excelProcessor';
-import { Database, TrendingUp, BarChart3, Activity, AlertTriangle, Wrench, Filter, Plus, X } from 'lucide-react';
+import { Database, TrendingUp, BarChart3, Activity, AlertTriangle, Wrench, Filter, Plus, X, Pencil } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -31,9 +31,52 @@ type CustomGroup = {
 };
 
 type GroupBuilderState = {
+  id?: string;
   categoryId: 'inputStatus' | 'errorCause' | 'handling';
   name: string;
   selectedKeys: string[];
+};
+
+const CustomTooltip = ({ active, payload, label, options }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white border text-left border-slate-900 rounded-none shadow-[4px_4px_0px_rgba(15,23,42,0.1)] p-3 text-xs font-mono min-w-[200px] z-50">
+        <p className="font-bold border-b border-slate-200 pb-2 mb-2 text-slate-800">{label}</p>
+        <div className="space-y-3">
+          {payload.map((entry: any, index: number) => {
+            const opt = options.find((o: any) => o.id === entry.dataKey);
+            const isGroup = opt?.isGroup;
+            
+            return (
+              <div key={index} className="space-y-1">
+                <div className="flex items-center gap-2 font-bold" style={{ color: entry.color }}>
+                  <div className="w-2.5 h-2.5 rounded-none" style={{ backgroundColor: entry.color }} />
+                  <span>{opt?.label || entry.name}: {entry.value}</span>
+                </div>
+                {isGroup && opt.originalKeys && (
+                  <div className="pl-4 space-y-1.5 border-l-2 border-slate-100 ml-1 mt-1.5 pb-1">
+                    {opt.originalKeys.map((k: string) => {
+                      const val = entry.payload[k] || 0;
+                      if (val > 0) {
+                        return (
+                          <div key={k} className="flex justify-between items-start gap-4 text-[10px] text-slate-600 font-sans">
+                            <span className="truncate max-w-[200px]" title={k}>• {k}</span>
+                            <span className="font-bold font-mono bg-slate-100 px-1 py-0.5 min-w-[20px] text-center text-slate-800">{val}</span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+  return null;
 };
 
 export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload: TabDataPayload[] }) {
@@ -228,19 +271,38 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
 
   const handleSaveGroup = () => {
     if (!groupBuilder || !groupBuilder.name || groupBuilder.selectedKeys.length === 0) return;
-    const newGroup: CustomGroup = {
-      id: `group_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-      categoryId: groupBuilder.categoryId,
-      name: groupBuilder.name,
-      keys: groupBuilder.selectedKeys
-    };
-    setCustomGroups([...customGroups, newGroup]);
     
-    if (groupBuilder.categoryId === 'inputStatus') setSelectedInputStatusKeys(prev => [...prev, newGroup.id]);
-    if (groupBuilder.categoryId === 'errorCause') setSelectedErrorCauseKeys(prev => [...prev, newGroup.id]);
-    if (groupBuilder.categoryId === 'handling') setSelectedHandlingKeys(prev => [...prev, newGroup.id]);
+    if (groupBuilder.id) {
+      // Edit existing
+      setCustomGroups(prev => prev.map(g => 
+        g.id === groupBuilder.id 
+          ? { ...g, name: groupBuilder.name, keys: groupBuilder.selectedKeys }
+          : g
+      ));
+    } else {
+      // Create new
+      const newGroup: CustomGroup = {
+        id: `group_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        categoryId: groupBuilder.categoryId,
+        name: groupBuilder.name,
+        keys: groupBuilder.selectedKeys
+      };
+      setCustomGroups([...customGroups, newGroup]);
+      
+      if (groupBuilder.categoryId === 'inputStatus') setSelectedInputStatusKeys(prev => [...prev, newGroup.id]);
+      if (groupBuilder.categoryId === 'errorCause') setSelectedErrorCauseKeys(prev => [...prev, newGroup.id]);
+      if (groupBuilder.categoryId === 'handling') setSelectedHandlingKeys(prev => [...prev, newGroup.id]);
+    }
     
     setGroupBuilder(null);
+  };
+
+  const handleEditGroup = (e: React.MouseEvent, id: string, categoryId: 'inputStatus' | 'errorCause' | 'handling') => {
+    e.stopPropagation();
+    const group = customGroups.find(g => g.id === id);
+    if (group) {
+      setGroupBuilder({ id: group.id, categoryId, name: group.name, selectedKeys: group.keys });
+    }
   };
 
   const handleDeleteGroup = (e: React.MouseEvent, id: string) => {
@@ -259,7 +321,7 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
     return (
       <div className="border border-emerald-200 bg-emerald-50/50 p-3 mb-3 relative rounded-none shadow-sm">
         <button onClick={() => setGroupBuilder(null)} className="absolute top-2 right-2 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
-        <div className="text-[10px] font-bold text-emerald-800 uppercase mb-2">Tạo nhóm hiển thị mới</div>
+        <div className="text-[10px] font-bold text-emerald-800 uppercase mb-2">{groupBuilder.id ? 'Sửa nhóm hiển thị' : 'Tạo nhóm hiển thị mới'}</div>
         <input 
           type="text" 
           placeholder="Tên nhóm (VD: Lỗi phần cứng...)" 
@@ -292,7 +354,7 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
           onClick={handleSaveGroup}
           className="mt-3 px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold uppercase disabled:opacity-50 hover:bg-emerald-700 transition-colors"
         >
-          Lưu Nhóm Này
+          {groupBuilder.id ? 'Lưu Thay Đổi' : 'Lưu Nhóm Này'}
         </button>
       </div>
     );
@@ -498,7 +560,10 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                         {opt.isGroup && <span className="bg-emerald-600 text-white px-1 py-0.5 rounded-sm text-[8px] leading-none uppercase">Nhóm</span>}
                         {opt.label}
                         {opt.isGroup && (
-                          <span onClick={(e) => handleDeleteGroup(e, opt.id)} className="ml-1 text-emerald-600 hover:text-rose-600 hover:bg-rose-100 rounded-full w-4 h-4 inline-flex items-center justify-center leading-none" title="Xóa nhóm">×</span>
+                          <div className="flex items-center ml-1 space-x-0.5">
+                            <span onClick={(e) => handleEditGroup(e, opt.id, 'inputStatus')} className="text-emerald-600 hover:text-emerald-800 hover:bg-emerald-200 rounded-full w-4 h-4 inline-flex items-center justify-center" title="Sửa nhóm"><Pencil className="w-2.5 h-2.5" /></span>
+                            <span onClick={(e) => handleDeleteGroup(e, opt.id)} className="text-emerald-600 hover:text-rose-600 hover:bg-rose-100 rounded-full w-4 h-4 inline-flex items-center justify-center leading-none" title="Xóa nhóm">×</span>
+                          </div>
                         )}
                       </button>
                     ))}
@@ -510,10 +575,7 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', fill: '#64748b' }} />
                       <YAxis axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
-                      <RechartsTooltip 
-                        contentStyle={{ borderRadius: 0, border: '1px solid #0f172a', boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', fontSize: '12px', fontFamily: 'monospace' }}
-                        itemStyle={{ fontWeight: 'bold' }}
-                      />
+                      <RechartsTooltip content={<CustomTooltip options={chartRenderData.inputStatus.options} />} />
                       <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 'bold' }} />
                       {selectedInputStatusKeys.map((key) => {
                         const opt = chartRenderData.inputStatus.options.find(o => o.id === key);
@@ -557,7 +619,10 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                         {opt.isGroup && <span className="bg-amber-600 text-white px-1 py-0.5 rounded-sm text-[8px] leading-none uppercase">Nhóm</span>}
                         {opt.label}
                         {opt.isGroup && (
-                          <span onClick={(e) => handleDeleteGroup(e, opt.id)} className="ml-1 text-amber-600 hover:text-rose-600 hover:bg-rose-100 rounded-full w-4 h-4 inline-flex items-center justify-center leading-none" title="Xóa nhóm">×</span>
+                          <div className="flex items-center ml-1 space-x-0.5">
+                            <span onClick={(e) => handleEditGroup(e, opt.id, 'errorCause')} className="text-amber-600 hover:text-amber-800 hover:bg-amber-200 rounded-full w-4 h-4 inline-flex items-center justify-center" title="Sửa nhóm"><Pencil className="w-2.5 h-2.5" /></span>
+                            <span onClick={(e) => handleDeleteGroup(e, opt.id)} className="text-amber-600 hover:text-rose-600 hover:bg-rose-100 rounded-full w-4 h-4 inline-flex items-center justify-center leading-none" title="Xóa nhóm">×</span>
+                          </div>
                         )}
                       </button>
                     ))}
@@ -569,10 +634,7 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', fill: '#64748b' }} />
                       <YAxis axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
-                      <RechartsTooltip 
-                        contentStyle={{ borderRadius: 0, border: '1px solid #0f172a', boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', fontSize: '12px', fontFamily: 'monospace' }}
-                        itemStyle={{ fontWeight: 'bold' }}
-                      />
+                      <RechartsTooltip content={<CustomTooltip options={chartRenderData.errorCause.options} />} />
                       <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 'bold' }} />
                       {selectedErrorCauseKeys.map((key) => {
                         const opt = chartRenderData.errorCause.options.find(o => o.id === key);
@@ -616,7 +678,10 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                         {opt.isGroup && <span className="bg-rose-600 text-white px-1 py-0.5 rounded-sm text-[8px] leading-none uppercase">Nhóm</span>}
                         {opt.label}
                         {opt.isGroup && (
-                          <span onClick={(e) => handleDeleteGroup(e, opt.id)} className="ml-1 text-rose-600 hover:text-rose-800 hover:bg-rose-200 rounded-full w-4 h-4 inline-flex items-center justify-center leading-none" title="Xóa nhóm">×</span>
+                          <div className="flex items-center ml-1 space-x-0.5">
+                            <span onClick={(e) => handleEditGroup(e, opt.id, 'handling')} className="text-rose-600 hover:text-rose-800 hover:bg-rose-200 rounded-full w-4 h-4 inline-flex items-center justify-center" title="Sửa nhóm"><Pencil className="w-2.5 h-2.5" /></span>
+                            <span onClick={(e) => handleDeleteGroup(e, opt.id)} className="text-rose-600 hover:text-rose-800 hover:bg-rose-200 rounded-full w-4 h-4 inline-flex items-center justify-center leading-none" title="Xóa nhóm">×</span>
+                          </div>
                         )}
                       </button>
                     ))}
@@ -628,10 +693,7 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', fill: '#64748b' }} />
                       <YAxis axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
-                      <RechartsTooltip 
-                        contentStyle={{ borderRadius: 0, border: '1px solid #0f172a', boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', fontSize: '12px', fontFamily: 'monospace' }}
-                        itemStyle={{ fontWeight: 'bold' }}
-                      />
+                      <RechartsTooltip content={<CustomTooltip options={chartRenderData.handling.options} />} />
                       <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 'bold' }} />
                       {selectedHandlingKeys.map((key) => {
                         const opt = chartRenderData.handling.options.find(o => o.id === key);
