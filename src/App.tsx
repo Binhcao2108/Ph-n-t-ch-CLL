@@ -52,6 +52,12 @@ export default function App() {
   // Combine all records across all month tabs
   const allCombinedRecords = Object.values(tabsData).flat() as MergedRecord[];
 
+  const summaryDataPayload = tabs.map(tab => ({
+    id: tab.id,
+    name: tab.name,
+    records: tabsData[tab.id] || []
+  }));
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 antialiased">
       <Navbar />
@@ -121,7 +127,7 @@ export default function App() {
           </div>
         ))}
         <div className={activeTabId === 'summary-tab' ? 'block' : 'hidden'}>
-          <SummaryTabContent allRecords={allCombinedRecords} />
+          <SummaryTabContent tabsDataPayload={summaryDataPayload} />
         </div>
       </main>
 
