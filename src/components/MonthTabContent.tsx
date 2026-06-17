@@ -108,7 +108,7 @@ export default function MonthTabContent({ tabName, onDataUpdate }: { tabName: st
   const masterStaffNamesL2 = useMemo(() => {
     const names = new Set<string>();
     mergedRecords.forEach(rec => {
-      if (rec.status === 'SUCCESS' && rec.staffL2 && rec.staffL2.trim()) {
+      if (rec.staffL2 && rec.staffL2.trim()) {
         names.add(rec.staffL2.trim());
       }
     });
@@ -130,7 +130,7 @@ export default function MonthTabContent({ tabName, onDataUpdate }: { tabName: st
     const counts: Record<string, number> = {};
     mergedRecords.forEach(rec => {
       const s2 = (rec.staffL2 || '').trim();
-      if (rec.status === 'SUCCESS' && s2) {
+      if (s2) {
         counts[s2] = (counts[s2] || 0) + 1;
       }
     });

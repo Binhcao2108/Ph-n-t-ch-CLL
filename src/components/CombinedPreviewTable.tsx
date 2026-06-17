@@ -907,25 +907,25 @@ export default function CombinedPreviewTable({ records, chartFilter, onClearChar
 
                     {/* L2 Info */}
                     <td className={`p-3 border-r border-slate-200 truncate font-mono text-[11px] ${isMatched ? 'text-slate-600 bg-emerald-50/10' : 'text-slate-400 italic bg-rose-50/5'}`}>
-                      {isMatched ? item.completedTimeL2 : '-'}
+                      {item.completedTimeL2 || '-'}
                     </td>
                     <td className={`p-3 border-r border-slate-200 truncate ${isMatched ? 'text-slate-600 bg-emerald-50/10' : 'text-slate-400 italic bg-rose-50/5'}`} title={item.notesL2}>
-                      {isMatched ? (item.notesL2 || <span className="text-slate-300 italic">Trống</span>) : '-'}
+                      {item.notesL2 || <span className="text-slate-300 italic">Trống</span>}
                     </td>
                     <td className={`p-3 border-r border-slate-200 truncate font-medium ${isMatched ? 'text-slate-950 bg-emerald-50/10' : 'text-slate-400 italic bg-rose-50/5'}`}>
-                      {isMatched ? item.inputStatusL2 : '-'}
+                      {item.inputStatusL2 || '-'}
                     </td>
                     <td className={`p-3 border-r border-slate-200 truncate ${isMatched ? 'text-slate-950 bg-emerald-50/10' : 'text-slate-400 italic bg-rose-50/5'}`}>
-                      {isMatched ? item.errorElementL2 : '-'}
+                      {item.errorElementL2 || '-'}
                     </td>
                     <td className={`p-3 border-r border-slate-200 font-bold truncate ${isMatched ? 'text-emerald-800 bg-emerald-50/10' : 'text-slate-400 italic bg-rose-50/5'}`} title={item.errorCauseL2}>
-                      {isMatched ? item.errorCauseL2 : '-'}
+                      {item.errorCauseL2 || '-'}
                     </td>
                     <td className={`p-3 border-r border-slate-200 truncate font-medium ${isMatched ? 'text-slate-950 bg-emerald-50/10' : 'text-slate-400 italic bg-rose-50/5'}`} title={item.handlingL2}>
-                      {isMatched ? item.handlingL2 : '-'}
+                      {item.handlingL2 || '-'}
                     </td>
                     <td className={`p-3 truncate font-medium ${isMatched ? 'text-slate-900 bg-emerald-50/10' : 'text-slate-400 italic bg-rose-50/5'}`} title={item.staffL2}>
-                      {isMatched ? (item.staffL2 || <span className="text-slate-300 italic">Trống</span>) : '-'}
+                      {item.staffL2 || <span className="text-slate-300 italic">Trống</span>}
                     </td>
                   </tr>
                 );

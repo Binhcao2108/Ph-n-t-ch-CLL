@@ -72,19 +72,19 @@ export default function DashboardCharts({
   const getActiveData = () => {
     switch (activeTab) {
       case 'inputStatus':
-        return inputStatusData;
+        return inputStatusData.slice(0, 15);
       case 'errorElement':
-        return errorElementData;
+        return errorElementData.slice(0, 15);
       case 'errorCause':
-        return errorCauseData;
+        return errorCauseData.slice(0, 15);
       case 'handling':
-        return handlingData;
+        return handlingData.slice(0, 15);
       case 'staff':
         if (chartFilter && chartFilter.type === 'staff') {
           const single = staffData.find(d => d.name === chartFilter.value);
           return single ? [single] : [];
         }
-        return staffData;
+        return staffData.slice(0, 15);
       default:
         return [];
     }

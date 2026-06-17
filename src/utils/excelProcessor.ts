@@ -306,54 +306,39 @@ export function calculateStatistics(records: MergedRecord[]) {
 
   for (const rec of records) {
     // 1. Tình trạng đầu vào
-    if (rec.inputStatusL1) {
-      const isFormat = rec.inputStatusL1.trim();
-      inputStatusCountsL1[isFormat] = (inputStatusCountsL1[isFormat] || 0) + 1;
-    }
-    if (rec.status === 'SUCCESS' && rec.inputStatusL2) {
-      const isFormat = rec.inputStatusL2.trim();
-      inputStatusCountsL2[isFormat] = (inputStatusCountsL2[isFormat] || 0) + 1;
-    }
+    const isL1 = rec.inputStatusL1 ? rec.inputStatusL1.trim() : "(Trống)";
+    inputStatusCountsL1[isL1] = (inputStatusCountsL1[isL1] || 0) + 1;
+    
+    const isL2 = rec.inputStatusL2 ? rec.inputStatusL2.trim() : "(Trống)";
+    inputStatusCountsL2[isL2] = (inputStatusCountsL2[isL2] || 0) + 1;
 
     // 2. Phần tử lỗi
-    if (rec.errorElementL1) {
-      const elFormat = rec.errorElementL1.trim();
-      errorElementCountsL1[elFormat] = (errorElementCountsL1[elFormat] || 0) + 1;
-    }
-    if (rec.status === 'SUCCESS' && rec.errorElementL2) {
-      const elFormat = rec.errorElementL2.trim();
-      errorElementCountsL2[elFormat] = (errorElementCountsL2[elFormat] || 0) + 1;
-    }
+    const elL1 = rec.errorElementL1 ? rec.errorElementL1.trim() : "(Trống)";
+    errorElementCountsL1[elL1] = (errorElementCountsL1[elL1] || 0) + 1;
+    
+    const elL2 = rec.errorElementL2 ? rec.errorElementL2.trim() : "(Trống)";
+    errorElementCountsL2[elL2] = (errorElementCountsL2[elL2] || 0) + 1;
 
     // 3. Nguyên nhân lỗi
-    if (rec.errorCauseL1) {
-      const ecFormat = rec.errorCauseL1.trim();
-      errorCauseCountsL1[ecFormat] = (errorCauseCountsL1[ecFormat] || 0) + 1;
-    }
-    if (rec.status === 'SUCCESS' && rec.errorCauseL2) {
-      const ecFormat = rec.errorCauseL2.trim();
-      errorCauseCountsL2[ecFormat] = (errorCauseCountsL2[ecFormat] || 0) + 1;
-    }
+    const ecL1 = rec.errorCauseL1 ? rec.errorCauseL1.trim() : "(Trống)";
+    errorCauseCountsL1[ecL1] = (errorCauseCountsL1[ecL1] || 0) + 1;
+    
+    const ecL2 = rec.errorCauseL2 ? rec.errorCauseL2.trim() : "(Trống)";
+    errorCauseCountsL2[ecL2] = (errorCauseCountsL2[ecL2] || 0) + 1;
 
     // 4. Hướng xử lý
-    if (rec.handlingL1) {
-      const hdFormat = rec.handlingL1.trim();
-      handlingCountsL1[hdFormat] = (handlingCountsL1[hdFormat] || 0) + 1;
-    }
-    if (rec.status === 'SUCCESS' && rec.handlingL2) {
-      const hdFormat = rec.handlingL2.trim();
-      handlingCountsL2[hdFormat] = (handlingCountsL2[hdFormat] || 0) + 1;
-    }
+    const hdL1 = rec.handlingL1 ? rec.handlingL1.trim() : "(Trống)";
+    handlingCountsL1[hdL1] = (handlingCountsL1[hdL1] || 0) + 1;
+    
+    const hdL2 = rec.handlingL2 ? rec.handlingL2.trim() : "(Trống)";
+    handlingCountsL2[hdL2] = (handlingCountsL2[hdL2] || 0) + 1;
 
     // 5. Nhân sự
-    if (rec.staffL1) {
-      const sf = rec.staffL1.trim();
-      staffL1Counts[sf] = (staffL1Counts[sf] || 0) + 1;
-    }
-    if (rec.status === 'SUCCESS' && rec.staffL2) {
-      const sf = rec.staffL2.trim();
-      staffL2Counts[sf] = (staffL2Counts[sf] || 0) + 1;
-    }
+    const sfL1 = rec.staffL1 ? rec.staffL1.trim() : "(Trống)";
+    staffL1Counts[sfL1] = (staffL1Counts[sfL1] || 0) + 1;
+    
+    const sfL2 = rec.staffL2 ? rec.staffL2.trim() : "(Trống)";
+    staffL2Counts[sfL2] = (staffL2Counts[sfL2] || 0) + 1;
 
     // 6. Cause Transition (Nguyên nhân lỗi L1 -> L2) - Only look at matched success cases
     if (rec.status === 'SUCCESS' && rec.errorCauseL1 && rec.errorCauseL2) {
@@ -372,8 +357,7 @@ export function calculateStatistics(records: MergedRecord[]) {
         'Lần 1': countsL1[key] || 0,
         'Lần 2': countsL2[key] || 0
       }))
-      .sort((a, b) => (b['Lần 1'] + b['Lần 2']) - (a['Lần 1'] + a['Lần 2']))
-      .slice(0, 15); // Show top 15 for readability
+      .sort((a, b) => (b['Lần 1'] + b['Lần 2']) - (a['Lần 1'] + a['Lần 2']));
   };
 
   const chartInputStatus = getSortedChartData(inputStatusCountsL1, inputStatusCountsL2);
@@ -531,7 +515,7 @@ export async function exportToExcel(
     row.getCell(13).value = record.errorElementL2;
     row.getCell(14).value = record.errorCauseL2;
     row.getCell(15).value = record.handlingL2;
-    row.getCell(16).value = record.status === 'SUCCESS' ? (record.staffL2 || '') : '';
+    row.getCell(16).value = record.staffL2 || '';
     row.getCell(17).value = record.timeDifferenceMinutes !== undefined ? record.timeDifferenceMinutes : '';
 
     // Bold successfully merged ones or gray out unmatched
