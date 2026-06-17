@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import DashboardStats from './DashboardStats';
 import { MergedRecord } from '../types';
 import { calculateStatistics } from '../utils/excelProcessor';
-import { Database, TrendingUp, BarChart3, Activity, AlertTriangle, Wrench } from 'lucide-react';
+import { Database, TrendingUp, BarChart3, Activity, AlertTriangle, Wrench, Filter, Plus, X } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -20,6 +20,19 @@ type TabDataPayload = {
   id: string;
   name: string;
   records: MergedRecord[];
+};
+
+type CustomGroup = {
+  id: string;
+  categoryId: 'inputStatus' | 'errorCause' | 'handling';
+  name: string;
+  keys: string[];
+};
+
+type GroupBuilderState = {
+  categoryId: 'inputStatus' | 'errorCause' | 'handling';
+  name: string;
+  selectedKeys: string[];
 };
 
 export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload: TabDataPayload[] }) {
@@ -67,27 +80,36 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
     const errorCauseKeys = new Set<string>();
     const handlingKeys = new Set<string>();
 
-    tabsDataPayload.filter(tab => tab.records.length > 0).forEach(tab => {
+    const rawData = tabsDataPayload.filter(tab => tab.records.length > 0).map(tab => {
       const stats = calculateStatistics(tab.records);
-      
+      return { tab, stats };
+    });
+
+    rawData.forEach(({ stats }) => {
+      stats.chartInputStatus.forEach((item: any) => inputStatusKeys.add(item.name));
+      stats.chartErrorCause.forEach((item: any) => errorCauseKeys.add(item.name));
+      stats.chartHandling.forEach((item: any) => handlingKeys.add(item.name));
+    });
+
+    rawData.forEach(({ tab, stats }) => {
       const isEntry: any = { name: tab.name };
+      inputStatusKeys.forEach(k => isEntry[k] = 0);
       stats.chartInputStatus.forEach((item: any) => {
         isEntry[item.name] = (item['Lần 1'] || 0) + (item['Lần 2'] || 0);
-        inputStatusKeys.add(item.name);
       });
       inputStatusData.push(isEntry);
 
       const causeEntry: any = { name: tab.name };
+      errorCauseKeys.forEach(k => causeEntry[k] = 0);
       stats.chartErrorCause.forEach((item: any) => {
         causeEntry[item.name] = (item['Lần 1'] || 0) + (item['Lần 2'] || 0);
-        errorCauseKeys.add(item.name);
       });
       errorCauseData.push(causeEntry);
 
       const handlingEntry: any = { name: tab.name };
+      handlingKeys.forEach(k => handlingEntry[k] = 0);
       stats.chartHandling.forEach((item: any) => {
         handlingEntry[item.name] = (item['Lần 1'] || 0) + (item['Lần 2'] || 0);
-        handlingKeys.add(item.name);
       });
       handlingData.push(handlingEntry);
     });
@@ -102,7 +124,125 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
     };
   }, [tabsDataPayload]);
 
+  const [selectedInputStatusKeys, setSelectedInputStatusKeys] = useState<string[]>([]);
+  const [selectedErrorCauseKeys, setSelectedErrorCauseKeys] = useState<string[]>([]);
+  const [selectedHandlingKeys, setSelectedHandlingKeys] = useState<string[]>([]);
+  const [customGroups, setCustomGroups] = useState<CustomGroup[]>([]);
+  const [groupBuilder, setGroupBuilder] = useState<GroupBuilderState | null>(null);
+  const [initialized, setInitialized] = useState(false);
+
+  const chartRenderData = useMemo(() => {
+    const process = (categoryId: 'inputStatus' | 'errorCause' | 'handling', rawData: any[], rawKeys: string[]) => {
+      const groups = customGroups.filter(g => g.categoryId === categoryId);
+      const data = rawData.map(monthData => {
+        const newData = { ...monthData };
+        groups.forEach(g => {
+          newData[g.id] = g.keys.reduce((sum: number, k: string) => sum + ((newData[k] as number) || 0), 0);
+        });
+        return newData;
+      });
+      const options = [
+        ...groups.map(g => ({ id: g.id, label: g.name, isGroup: true, originalKeys: g.keys })),
+        ...rawKeys.map(k => ({ id: k, label: k, isGroup: false, originalKeys: undefined }))
+      ];
+      return { data, options, groups };
+    };
+
+    return {
+      inputStatus: process('inputStatus', monthlyDetailedStats.inputStatusData, monthlyDetailedStats.inputStatusKeys),
+      errorCause: process('errorCause', monthlyDetailedStats.errorCauseData, monthlyDetailedStats.errorCauseKeys),
+      handling: process('handling', monthlyDetailedStats.handlingData, monthlyDetailedStats.handlingKeys),
+    };
+  }, [monthlyDetailedStats, customGroups]);
+
+  useEffect(() => {
+    if (!initialized && monthlyDetailedStats.inputStatusKeys.length > 0) {
+      setSelectedInputStatusKeys(monthlyDetailedStats.inputStatusKeys.slice(0, 5));
+      setSelectedErrorCauseKeys(monthlyDetailedStats.errorCauseKeys.slice(0, 5));
+      setSelectedHandlingKeys(monthlyDetailedStats.handlingKeys.slice(0, 5));
+      setInitialized(true);
+    }
+  }, [monthlyDetailedStats, initialized]);
+
+  const toggleKey = (key: string, list: string[], setList: (l: string[]) => void) => {
+    if (list.includes(key)) {
+      setList(list.filter(k => k !== key));
+    } else {
+      setList([...list, key]);
+    }
+  };
+
+  const handleSaveGroup = () => {
+    if (!groupBuilder || !groupBuilder.name || groupBuilder.selectedKeys.length === 0) return;
+    const newGroup: CustomGroup = {
+      id: `group_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      categoryId: groupBuilder.categoryId,
+      name: groupBuilder.name,
+      keys: groupBuilder.selectedKeys
+    };
+    setCustomGroups([...customGroups, newGroup]);
+    
+    if (groupBuilder.categoryId === 'inputStatus') setSelectedInputStatusKeys(prev => [...prev, newGroup.id]);
+    if (groupBuilder.categoryId === 'errorCause') setSelectedErrorCauseKeys(prev => [...prev, newGroup.id]);
+    if (groupBuilder.categoryId === 'handling') setSelectedHandlingKeys(prev => [...prev, newGroup.id]);
+    
+    setGroupBuilder(null);
+  };
+
+  const handleDeleteGroup = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setCustomGroups(prev => prev.filter(g => g.id !== id));
+    setSelectedInputStatusKeys(prev => prev.filter(k => k !== id));
+    setSelectedErrorCauseKeys(prev => prev.filter(k => k !== id));
+    setSelectedHandlingKeys(prev => prev.filter(k => k !== id));
+  };
+
   const COLORS = ['#059669', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#10b981', '#64748b', '#0ea5e9'];
+  const getColor = (key: string, keysArray: string[]) => COLORS[keysArray.indexOf(key) % COLORS.length];
+
+  const renderGroupBuilder = (categoryId: 'inputStatus' | 'errorCause' | 'handling', rawKeys: string[]) => {
+    if (groupBuilder?.categoryId !== categoryId) return null;
+    return (
+      <div className="border border-emerald-200 bg-emerald-50/50 p-3 mb-3 relative rounded-none shadow-sm">
+        <button onClick={() => setGroupBuilder(null)} className="absolute top-2 right-2 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+        <div className="text-[10px] font-bold text-emerald-800 uppercase mb-2">Tạo nhóm hiển thị mới</div>
+        <input 
+          type="text" 
+          placeholder="Tên nhóm (VD: Lỗi phần cứng...)" 
+          value={groupBuilder.name}
+          onChange={e => setGroupBuilder({ ...groupBuilder, name: e.target.value })}
+          className="w-full text-xs p-2 border border-emerald-200 rounded-none mb-2 outline-none focus:border-emerald-500 bg-white"
+        />
+        <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">Chọn các trường để gộp nhóm:</div>
+        <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto p-1.5 border border-slate-200 bg-white">
+          {rawKeys.map(key => {
+            const isSelected = groupBuilder.selectedKeys.includes(key);
+            return (
+              <button
+                key={key}
+                onClick={() => {
+                  const newKeys = isSelected 
+                    ? groupBuilder.selectedKeys.filter(k => k !== key)
+                    : [...groupBuilder.selectedKeys, key];
+                  setGroupBuilder({ ...groupBuilder, selectedKeys: newKeys });
+                }}
+                className={`px-1.5 py-0.5 text-[9px] font-bold transition-colors ${isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              >
+                {key}
+              </button>
+            );
+          })}
+        </div>
+        <button 
+          disabled={!groupBuilder.name || groupBuilder.selectedKeys.length === 0}
+          onClick={handleSaveGroup}
+          className="mt-3 px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold uppercase disabled:opacity-50 hover:bg-emerald-700 transition-colors"
+        >
+          Lưu Nhóm Này
+        </button>
+      </div>
+    );
+  };
 
   if (allRecords.length === 0) {
     return (
@@ -276,24 +416,55 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                 <div className="border-b border-slate-900 bg-slate-50 px-4 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Activity className="h-4 w-4 text-emerald-600" />
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Cơ cấu Tình trạng đầu vào theo tháng (%)</h3>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Tình trạng đầu vào theo tháng</h3>
+                  </div>
+                </div>
+                <div className="px-4 py-3 bg-white border-b border-slate-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-3 w-3 text-slate-400" />
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Chọn nguyên nhân hiển thị:</span>
+                    </div>
+                    <button 
+                      onClick={() => setGroupBuilder({ categoryId: 'inputStatus', name: '', selectedKeys: [] })}
+                      className="text-[10px] text-emerald-600 font-bold hover:text-emerald-700 flex items-center gap-1 uppercase tracking-wider"
+                    >
+                      <Plus className="w-3 h-3" /> Tạo nhóm
+                    </button>
+                  </div>
+                  {renderGroupBuilder('inputStatus', monthlyDetailedStats.inputStatusKeys)}
+                  <div className="flex flex-wrap gap-1.5">
+                    {chartRenderData.inputStatus.options.map(opt => (
+                      <button 
+                        key={opt.id} 
+                        onClick={() => toggleKey(opt.id, selectedInputStatusKeys, setSelectedInputStatusKeys)}
+                        className={`px-2 py-1 text-[10px] font-bold border transition-colors flex items-center gap-1 ${selectedInputStatusKeys.includes(opt.id) ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:border-slate-300'}`}
+                        title={opt.isGroup ? `Gồm: ${opt.originalKeys?.join(', ')}` : ''}
+                      >
+                        {opt.isGroup && <span className="bg-emerald-600 text-white px-1 py-0.5 rounded-sm text-[8px] leading-none uppercase">Nhóm</span>}
+                        {opt.label}
+                        {opt.isGroup && (
+                          <span onClick={(e) => handleDeleteGroup(e, opt.id)} className="ml-1 text-emerald-600 hover:text-rose-600 hover:bg-rose-100 rounded-full w-4 h-4 inline-flex items-center justify-center leading-none" title="Xóa nhóm">×</span>
+                        )}
+                      </button>
+                    ))}
                   </div>
                 </div>
                 <div className="p-4 h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={monthlyDetailedStats.inputStatusData} stackOffset="expand" margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                    <BarChart data={chartRenderData.inputStatus.data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', fill: '#64748b' }} />
-                      <YAxis tickFormatter={(val) => `${(val * 100).toFixed(0)}%`} axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
+                      <YAxis axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
                       <RechartsTooltip 
-                        formatter={(value: number) => [`${(value * 100).toFixed(1)}%`, undefined]}
                         contentStyle={{ borderRadius: 0, border: '1px solid #0f172a', boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', fontSize: '12px', fontFamily: 'monospace' }}
                         itemStyle={{ fontWeight: 'bold' }}
                       />
                       <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 'bold' }} />
-                      {monthlyDetailedStats.inputStatusKeys.map((key, idx) => (
-                        <Bar key={key} dataKey={key} stackId="a" fill={COLORS[idx % COLORS.length]} maxBarSize={60} />
-                      ))}
+                      {selectedInputStatusKeys.map((key) => {
+                        const opt = chartRenderData.inputStatus.options.find(o => o.id === key);
+                        return <Bar key={key} dataKey={key} name={opt?.label || key} fill={getColor(key, chartRenderData.inputStatus.options.map(o=>o.id))} maxBarSize={40} />;
+                      })}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -304,24 +475,55 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                 <div className="border-b border-slate-900 bg-slate-50 px-4 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Cơ cấu Nguyên nhân lỗi theo tháng (%)</h3>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Nguyên nhân lỗi theo tháng</h3>
+                  </div>
+                </div>
+                <div className="px-4 py-3 bg-white border-b border-slate-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-3 w-3 text-slate-400" />
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Chọn nguyên nhân hiển thị:</span>
+                    </div>
+                    <button 
+                      onClick={() => setGroupBuilder({ categoryId: 'errorCause', name: '', selectedKeys: [] })}
+                      className="text-[10px] text-amber-600 font-bold hover:text-amber-700 flex items-center gap-1 uppercase tracking-wider"
+                    >
+                      <Plus className="w-3 h-3" /> Tạo nhóm
+                    </button>
+                  </div>
+                  {renderGroupBuilder('errorCause', monthlyDetailedStats.errorCauseKeys)}
+                  <div className="flex flex-wrap gap-1.5">
+                    {chartRenderData.errorCause.options.map(opt => (
+                      <button 
+                        key={opt.id} 
+                        onClick={() => toggleKey(opt.id, selectedErrorCauseKeys, setSelectedErrorCauseKeys)}
+                        className={`px-2 py-1 text-[10px] font-bold border transition-colors flex items-center gap-1 ${selectedErrorCauseKeys.includes(opt.id) ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:border-slate-300'}`}
+                        title={opt.isGroup ? `Gồm: ${opt.originalKeys?.join(', ')}` : ''}
+                      >
+                        {opt.isGroup && <span className="bg-amber-600 text-white px-1 py-0.5 rounded-sm text-[8px] leading-none uppercase">Nhóm</span>}
+                        {opt.label}
+                        {opt.isGroup && (
+                          <span onClick={(e) => handleDeleteGroup(e, opt.id)} className="ml-1 text-amber-600 hover:text-rose-600 hover:bg-rose-100 rounded-full w-4 h-4 inline-flex items-center justify-center leading-none" title="Xóa nhóm">×</span>
+                        )}
+                      </button>
+                    ))}
                   </div>
                 </div>
                 <div className="p-4 h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={monthlyDetailedStats.errorCauseData} stackOffset="expand" margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                    <BarChart data={chartRenderData.errorCause.data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', fill: '#64748b' }} />
-                      <YAxis tickFormatter={(val) => `${(val * 100).toFixed(0)}%`} axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
+                      <YAxis axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
                       <RechartsTooltip 
-                        formatter={(value: number) => [`${(value * 100).toFixed(1)}%`, undefined]}
                         contentStyle={{ borderRadius: 0, border: '1px solid #0f172a', boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', fontSize: '12px', fontFamily: 'monospace' }}
                         itemStyle={{ fontWeight: 'bold' }}
                       />
                       <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 'bold' }} />
-                      {monthlyDetailedStats.errorCauseKeys.map((key, idx) => (
-                        <Bar key={key} dataKey={key} stackId="a" fill={COLORS[idx % COLORS.length]} maxBarSize={60} />
-                      ))}
+                      {selectedErrorCauseKeys.map((key) => {
+                        const opt = chartRenderData.errorCause.options.find(o => o.id === key);
+                        return <Bar key={key} dataKey={key} name={opt?.label || key} fill={getColor(key, chartRenderData.errorCause.options.map(o=>o.id))} maxBarSize={40} />;
+                      })}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -332,24 +534,55 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                 <div className="border-b border-slate-900 bg-slate-50 px-4 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Wrench className="h-4 w-4 text-rose-500" />
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Cơ cấu Hướng xử lý theo tháng (%)</h3>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Hướng xử lý theo tháng</h3>
+                  </div>
+                </div>
+                <div className="px-4 py-3 bg-white border-b border-slate-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-3 w-3 text-slate-400" />
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Chọn hướng xử lý hiển thị:</span>
+                    </div>
+                    <button 
+                      onClick={() => setGroupBuilder({ categoryId: 'handling', name: '', selectedKeys: [] })}
+                      className="text-[10px] text-rose-600 font-bold hover:text-rose-700 flex items-center gap-1 uppercase tracking-wider"
+                    >
+                      <Plus className="w-3 h-3" /> Tạo nhóm
+                    </button>
+                  </div>
+                  {renderGroupBuilder('handling', monthlyDetailedStats.handlingKeys)}
+                  <div className="flex flex-wrap gap-1.5">
+                    {chartRenderData.handling.options.map(opt => (
+                      <button 
+                        key={opt.id} 
+                        onClick={() => toggleKey(opt.id, selectedHandlingKeys, setSelectedHandlingKeys)}
+                        className={`px-2 py-1 text-[10px] font-bold border transition-colors flex items-center gap-1 ${selectedHandlingKeys.includes(opt.id) ? 'bg-rose-100 text-rose-800 border-rose-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:border-slate-300'}`}
+                        title={opt.isGroup ? `Gồm: ${opt.originalKeys?.join(', ')}` : ''}
+                      >
+                        {opt.isGroup && <span className="bg-rose-600 text-white px-1 py-0.5 rounded-sm text-[8px] leading-none uppercase">Nhóm</span>}
+                        {opt.label}
+                        {opt.isGroup && (
+                          <span onClick={(e) => handleDeleteGroup(e, opt.id)} className="ml-1 text-rose-600 hover:text-rose-800 hover:bg-rose-200 rounded-full w-4 h-4 inline-flex items-center justify-center leading-none" title="Xóa nhóm">×</span>
+                        )}
+                      </button>
+                    ))}
                   </div>
                 </div>
                 <div className="p-4 h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={monthlyDetailedStats.handlingData} stackOffset="expand" margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                    <BarChart data={chartRenderData.handling.data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', fill: '#64748b' }} />
-                      <YAxis tickFormatter={(val) => `${(val * 100).toFixed(0)}%`} axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
+                      <YAxis axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
                       <RechartsTooltip 
-                        formatter={(value: number) => [`${(value * 100).toFixed(1)}%`, undefined]}
                         contentStyle={{ borderRadius: 0, border: '1px solid #0f172a', boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', fontSize: '12px', fontFamily: 'monospace' }}
                         itemStyle={{ fontWeight: 'bold' }}
                       />
                       <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 'bold' }} />
-                      {monthlyDetailedStats.handlingKeys.map((key, idx) => (
-                        <Bar key={key} dataKey={key} stackId="a" fill={COLORS[idx % COLORS.length]} maxBarSize={60} />
-                      ))}
+                      {selectedHandlingKeys.map((key) => {
+                        const opt = chartRenderData.handling.options.find(o => o.id === key);
+                        return <Bar key={key} dataKey={key} name={opt?.label || key} fill={getColor(key, chartRenderData.handling.options.map(o=>o.id))} maxBarSize={40} />;
+                      })}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
