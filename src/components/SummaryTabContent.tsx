@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  ComposedChart,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -44,6 +45,15 @@ const CustomTooltip = ({ active, payload, label, options }: any) => {
         <p className="font-bold border-b border-slate-200 pb-2 mb-2 text-slate-800">{label}</p>
         <div className="space-y-3">
           {payload.map((entry: any, index: number) => {
+            if (entry.dataKey === 'Trend_L1' || entry.dataKey === 'Trend_L2') {
+              return (
+                <div key={index} className="flex items-center gap-2 font-bold mt-2 pt-2 border-t border-slate-100" style={{ color: entry.color }}>
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
+                  <span>{entry.name}: {entry.value}</span>
+                </div>
+              );
+            }
+
             const opt = options.find((o: any) => o.id === entry.dataKey);
             const isGroup = opt?.isGroup;
             
@@ -137,23 +147,29 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
 
     rawData.forEach(({ tab, stats }) => {
       const isEntry: any = { name: tab.name };
-      inputStatusKeys.forEach(k => isEntry[k] = 0);
+      inputStatusKeys.forEach(k => { isEntry[k] = 0; isEntry[`${k}_L1`] = 0; isEntry[`${k}_L2`] = 0; });
       stats.chartInputStatus.forEach((item: any) => {
         isEntry[item.name] = (item['Lần 1'] || 0) + (item['Lần 2'] || 0);
+        isEntry[`${item.name}_L1`] = item['Lần 1'] || 0;
+        isEntry[`${item.name}_L2`] = item['Lần 2'] || 0;
       });
       inputStatusData.push(isEntry);
 
       const causeEntry: any = { name: tab.name };
-      errorCauseKeys.forEach(k => causeEntry[k] = 0);
+      errorCauseKeys.forEach(k => { causeEntry[k] = 0; causeEntry[`${k}_L1`] = 0; causeEntry[`${k}_L2`] = 0; });
       stats.chartErrorCause.forEach((item: any) => {
         causeEntry[item.name] = (item['Lần 1'] || 0) + (item['Lần 2'] || 0);
+        causeEntry[`${item.name}_L1`] = item['Lần 1'] || 0;
+        causeEntry[`${item.name}_L2`] = item['Lần 2'] || 0;
       });
       errorCauseData.push(causeEntry);
 
       const handlingEntry: any = { name: tab.name };
-      handlingKeys.forEach(k => handlingEntry[k] = 0);
+      handlingKeys.forEach(k => { handlingEntry[k] = 0; handlingEntry[`${k}_L1`] = 0; handlingEntry[`${k}_L2`] = 0; });
       stats.chartHandling.forEach((item: any) => {
         handlingEntry[item.name] = (item['Lần 1'] || 0) + (item['Lần 2'] || 0);
+        handlingEntry[`${item.name}_L1`] = item['Lần 1'] || 0;
+        handlingEntry[`${item.name}_L2`] = item['Lần 2'] || 0;
       });
       handlingData.push(handlingEntry);
     });
@@ -185,6 +201,8 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
         const newData = { ...monthData };
         groups.forEach(g => {
           newData[g.id] = g.keys.reduce((sum: number, k: string) => sum + ((newData[k] as number) || 0), 0);
+          newData[`${g.id}_L1`] = g.keys.reduce((sum: number, k: string) => sum + ((newData[`${k}_L1`] as number) || 0), 0);
+          newData[`${g.id}_L2`] = g.keys.reduce((sum: number, k: string) => sum + ((newData[`${k}_L2`] as number) || 0), 0);
         });
         return newData;
       });
@@ -318,6 +336,14 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
 
   const renderGroupBuilder = (categoryId: 'inputStatus' | 'errorCause' | 'handling', rawKeys: string[]) => {
     if (groupBuilder?.categoryId !== categoryId) return null;
+
+    const otherGroupsUsedKeys = new Set(
+      customGroups
+        .filter(g => g.categoryId === categoryId && g.id !== groupBuilder.id)
+        .flatMap(g => g.keys)
+    );
+    const availableKeys = rawKeys.filter(key => !otherGroupsUsedKeys.has(key));
+
     return (
       <div className="border border-emerald-200 bg-emerald-50/50 p-3 mb-3 relative rounded-none shadow-sm">
         <button onClick={() => setGroupBuilder(null)} className="absolute top-2 right-2 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
@@ -331,7 +357,7 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
         />
         <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">Chọn các trường để gộp nhóm:</div>
         <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto p-1.5 border border-slate-200 bg-white">
-          {rawKeys.map(key => {
+          {availableKeys.map(key => {
             const isSelected = groupBuilder.selectedKeys.includes(key);
             return (
               <button
@@ -571,7 +597,14 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                 </div>
                 <div className="p-4 h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartRenderData.inputStatus.data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                    <ComposedChart 
+                      data={chartRenderData.inputStatus.data.map(d => ({
+                        ...d,
+                        Trend_L1: selectedInputStatusKeys.reduce((s, k) => s + (d[`${k}_L1`] || 0), 0),
+                        Trend_L2: selectedInputStatusKeys.reduce((s, k) => s + (d[`${k}_L2`] || 0), 0)
+                      }))} 
+                      margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', fill: '#64748b' }} />
                       <YAxis axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
@@ -581,7 +614,9 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                         const opt = chartRenderData.inputStatus.options.find(o => o.id === key);
                         return <Bar key={key} dataKey={key} name={opt?.label || key} fill={getColor(key, chartRenderData.inputStatus.options.map(o=>o.id))} maxBarSize={40} />;
                       })}
-                    </BarChart>
+                      <Line type="monotone" dataKey="Trend_L1" name="Tổng Lần 1 (Đã chọn)" stroke="#059669" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                      <Line type="monotone" dataKey="Trend_L2" name="Tổng Lần 2 (Đã chọn)" stroke="#ea580c" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               </section>
@@ -630,7 +665,14 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                 </div>
                 <div className="p-4 h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartRenderData.errorCause.data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                    <ComposedChart 
+                      data={chartRenderData.errorCause.data.map(d => ({
+                        ...d,
+                        Trend_L1: selectedErrorCauseKeys.reduce((s, k) => s + (d[`${k}_L1`] || 0), 0),
+                        Trend_L2: selectedErrorCauseKeys.reduce((s, k) => s + (d[`${k}_L2`] || 0), 0)
+                      }))} 
+                      margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', fill: '#64748b' }} />
                       <YAxis axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
@@ -640,7 +682,9 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                         const opt = chartRenderData.errorCause.options.find(o => o.id === key);
                         return <Bar key={key} dataKey={key} name={opt?.label || key} fill={getColor(key, chartRenderData.errorCause.options.map(o=>o.id))} maxBarSize={40} />;
                       })}
-                    </BarChart>
+                      <Line type="monotone" dataKey="Trend_L1" name="Tổng Lần 1 (Đã chọn)" stroke="#059669" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                      <Line type="monotone" dataKey="Trend_L2" name="Tổng Lần 2 (Đã chọn)" stroke="#ea580c" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               </section>
@@ -689,7 +733,14 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                 </div>
                 <div className="p-4 h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartRenderData.handling.data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                    <ComposedChart 
+                      data={chartRenderData.handling.data.map(d => ({
+                        ...d,
+                        Trend_L1: selectedHandlingKeys.reduce((s, k) => s + (d[`${k}_L1`] || 0), 0),
+                        Trend_L2: selectedHandlingKeys.reduce((s, k) => s + (d[`${k}_L2`] || 0), 0)
+                      }))} 
+                      margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', fill: '#64748b' }} />
                       <YAxis axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
@@ -699,7 +750,9 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                         const opt = chartRenderData.handling.options.find(o => o.id === key);
                         return <Bar key={key} dataKey={key} name={opt?.label || key} fill={getColor(key, chartRenderData.handling.options.map(o=>o.id))} maxBarSize={40} />;
                       })}
-                    </BarChart>
+                      <Line type="monotone" dataKey="Trend_L1" name="Tổng Lần 1 (Đã chọn)" stroke="#059669" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                      <Line type="monotone" dataKey="Trend_L2" name="Tổng Lần 2 (Đã chọn)" stroke="#ea580c" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               </section>

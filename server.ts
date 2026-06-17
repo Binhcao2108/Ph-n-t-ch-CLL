@@ -32,10 +32,19 @@ Yêu cầu trình bày:
 - Dùng Markdown hiệu quả (sử dụng in đậm cho keywords, dùng bullet points hoặc numbered lists).
 - Hạn chế các nội dung thừa, hãy tập trung đi thẳng vào dữ liệu.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
-        contents: prompt
-      });
+      let response;
+      try {
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-pro",
+          contents: prompt
+        });
+      } catch (proError: any) {
+        console.warn("Lỗi khi dùng gemini-2.5-pro, tự động chuyển sang gemini-2.5-flash:", proError.message);
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt
+        });
+      }
 
       res.json({ analysis: response.text });
     } catch (e: any) {
