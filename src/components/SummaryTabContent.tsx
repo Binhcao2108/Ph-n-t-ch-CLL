@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import DashboardStats from './DashboardStats';
 import { MergedRecord } from '../types';
 import { calculateStatistics } from '../utils/excelProcessor';
@@ -131,6 +132,9 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
   const [groupBuilder, setGroupBuilder] = useState<GroupBuilderState | null>(null);
   const [initialized, setInitialized] = useState(false);
 
+  const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
+  const [aiAnalysisResult, setAiAnalysisResult] = useState<string | null>(null);
+
   const chartRenderData = useMemo(() => {
     const process = (categoryId: 'inputStatus' | 'errorCause' | 'handling', rawData: any[], rawKeys: string[]) => {
       const groups = customGroups.filter(g => g.categoryId === categoryId);
@@ -169,6 +173,56 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
       setList(list.filter(k => k !== key));
     } else {
       setList([...list, key]);
+    }
+  };
+
+  const handleAnalyze = async () => {
+    setIsAiAnalyzing(true);
+    setAiAnalysisResult(null);
+    try {
+      // Build a minimal payload with only selected items for AI to analyze
+      const payload = {
+        months: chartRenderData.inputStatus.data.map(d => d.name),
+        inputStatus: chartRenderData.inputStatus.data.map((d: any) => {
+          const res: any = { month: d.name };
+          selectedInputStatusKeys.forEach(k => {
+            const opt = chartRenderData.inputStatus.options.find(o => o.id === k);
+            res[opt?.label || k] = d[k];
+          });
+          return res;
+        }),
+        errorCause: chartRenderData.errorCause.data.map((d: any) => {
+          const res: any = { month: d.name };
+          selectedErrorCauseKeys.forEach(k => {
+            const opt = chartRenderData.errorCause.options.find(o => o.id === k);
+            res[opt?.label || k] = d[k];
+          });
+          return res;
+        }),
+        handling: chartRenderData.handling.data.map((d: any) => {
+          const res: any = { month: d.name };
+          selectedHandlingKeys.forEach(k => {
+            const opt = chartRenderData.handling.options.find(o => o.id === k);
+            res[opt?.label || k] = d[k];
+          });
+          return res;
+        })
+      };
+
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Unknown error');
+      }
+      setAiAnalysisResult(data.analysis);
+    } catch (err: any) {
+      setAiAnalysisResult(`**Lỗi khi phân tích:**\n\n${err.message}\n\nVui lòng thử lại sau hoặc kiểm tra cấu hình.`);
+    } finally {
+      setIsAiAnalyzing(false);
     }
   };
 
@@ -587,9 +641,47 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                   </ResponsiveContainer>
                 </div>
               </section>
-
             </div>
           )}
+
+          {/* AI Analysis Section */}
+          <section className="bg-white border border-slate-900 rounded-none overflow-hidden shadow-[4px_4px_0px_rgba(15,23,42,0.1)] flex flex-col mt-6 mb-12">
+            <div className="border-b border-slate-900 bg-emerald-50 px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 flex items-center justify-center bg-emerald-600 outline outline-1 outline-emerald-900">
+                  <span className="text-white text-[10px] font-black">AI</span>
+                </div>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Nhận Định AI</h3>
+              </div>
+              <button 
+                onClick={handleAnalyze} 
+                className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold uppercase hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-[2px_2px_0px_rgba(15,23,42,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                disabled={isAiAnalyzing}
+              >
+                {isAiAnalyzing ? (
+                  <>
+                    <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    Đang Phân Tích...
+                  </>
+                ) : (
+                  "Phân Tích Dữ Liệu"
+                )}
+              </button>
+            </div>
+            {aiAnalysisResult && (
+              <div className="p-6 prose prose-sm prose-emerald max-w-none text-slate-800 font-medium">
+                <div className="markdown-body">
+                  <ReactMarkdown>{aiAnalysisResult}</ReactMarkdown>
+                </div>
+              </div>
+            )}
+            {!aiAnalysisResult && !isAiAnalyzing && (
+              <div className="p-8 text-center text-slate-500 text-xs font-bold font-mono">
+                Sau khi hiệu chỉnh các biểu đồ ở trên, nhấn "Phân Tích Dữ Liệu" để AI tổng hợp nhận định.
+              </div>
+            )}
+          </section>
+
         </>
       )}
     </div>
