@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import DashboardStats from './DashboardStats';
 import { MergedRecord } from '../types';
-import { Database, TrendingUp, BarChart3 } from 'lucide-react';
+import { calculateStatistics } from '../utils/excelProcessor';
+import { Database, TrendingUp, BarChart3, Activity, AlertTriangle, Wrench } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -56,6 +57,52 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
         };
     });
   }, [tabsDataPayload]);
+
+  const monthlyDetailedStats = useMemo(() => {
+    const inputStatusData: any[] = [];
+    const errorCauseData: any[] = [];
+    const handlingData: any[] = [];
+
+    const inputStatusKeys = new Set<string>();
+    const errorCauseKeys = new Set<string>();
+    const handlingKeys = new Set<string>();
+
+    tabsDataPayload.filter(tab => tab.records.length > 0).forEach(tab => {
+      const stats = calculateStatistics(tab.records);
+      
+      const isEntry: any = { name: tab.name };
+      stats.chartInputStatus.forEach(item => {
+        isEntry[item.name] = item.value;
+        inputStatusKeys.add(item.name);
+      });
+      inputStatusData.push(isEntry);
+
+      const causeEntry: any = { name: tab.name };
+      stats.chartErrorCause.forEach(item => {
+        causeEntry[item.name] = item.value;
+        errorCauseKeys.add(item.name);
+      });
+      errorCauseData.push(causeEntry);
+
+      const handlingEntry: any = { name: tab.name };
+      stats.chartHandling.forEach(item => {
+        handlingEntry[item.name] = item.value;
+        handlingKeys.add(item.name);
+      });
+      handlingData.push(handlingEntry);
+    });
+
+    return {
+      inputStatusData,
+      inputStatusKeys: Array.from(inputStatusKeys),
+      errorCauseData,
+      errorCauseKeys: Array.from(errorCauseKeys),
+      handlingData,
+      handlingKeys: Array.from(handlingKeys),
+    };
+  }, [tabsDataPayload]);
+
+  const COLORS = ['#059669', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#10b981', '#64748b', '#0ea5e9'];
 
   if (allRecords.length === 0) {
     return (
@@ -150,6 +197,94 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                       <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 'bold' }} />
                       <Line type="monotone" dataKey="Tỷ_Lệ_Thành_Công" stroke="#059669" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
                     </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </section>
+
+            </div>
+          )}
+
+          {/* Detailed Monthly Trends */}
+          {monthlyDetailedStats.inputStatusData.length > 0 && (
+            <div className="grid grid-cols-1 gap-6 mt-2">
+              
+              {/* Input Status Chart */}
+              <section className="bg-white border border-slate-900 rounded-none overflow-hidden shadow-[4px_4px_0px_rgba(15,23,42,0.1)] flex flex-col">
+                <div className="border-b border-slate-900 bg-slate-50 px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-emerald-600" />
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Tình trạng đầu vào theo tháng</h3>
+                  </div>
+                </div>
+                <div className="p-4 h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyDetailedStats.inputStatusData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', fill: '#64748b' }} />
+                      <YAxis axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
+                      <RechartsTooltip 
+                        contentStyle={{ borderRadius: 0, border: '1px solid #0f172a', boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', fontSize: '12px', fontFamily: 'monospace' }}
+                        itemStyle={{ fontWeight: 'bold' }}
+                      />
+                      <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 'bold' }} />
+                      {monthlyDetailedStats.inputStatusKeys.map((key, idx) => (
+                        <Bar key={key} dataKey={key} stackId="a" fill={COLORS[idx % COLORS.length]} maxBarSize={60} />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </section>
+
+              {/* Error Cause Chart */}
+              <section className="bg-white border border-slate-900 rounded-none overflow-hidden shadow-[4px_4px_0px_rgba(15,23,42,0.1)] flex flex-col">
+                <div className="border-b border-slate-900 bg-slate-50 px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Nguyên nhân lỗi theo tháng</h3>
+                  </div>
+                </div>
+                <div className="p-4 h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyDetailedStats.errorCauseData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', fill: '#64748b' }} />
+                      <YAxis axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
+                      <RechartsTooltip 
+                        contentStyle={{ borderRadius: 0, border: '1px solid #0f172a', boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', fontSize: '12px', fontFamily: 'monospace' }}
+                        itemStyle={{ fontWeight: 'bold' }}
+                      />
+                      <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 'bold' }} />
+                      {monthlyDetailedStats.errorCauseKeys.map((key, idx) => (
+                        <Bar key={key} dataKey={key} stackId="a" fill={COLORS[idx % COLORS.length]} maxBarSize={60} />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </section>
+
+              {/* Handling Chart */}
+              <section className="bg-white border border-slate-900 rounded-none overflow-hidden shadow-[4px_4px_0px_rgba(15,23,42,0.1)] flex flex-col">
+                <div className="border-b border-slate-900 bg-slate-50 px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Wrench className="h-4 w-4 text-rose-500" />
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Hướng xử lý theo tháng</h3>
+                  </div>
+                </div>
+                <div className="p-4 h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyDetailedStats.handlingData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', fill: '#64748b' }} />
+                      <YAxis axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
+                      <RechartsTooltip 
+                        contentStyle={{ borderRadius: 0, border: '1px solid #0f172a', boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', fontSize: '12px', fontFamily: 'monospace' }}
+                        itemStyle={{ fontWeight: 'bold' }}
+                      />
+                      <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 'bold' }} />
+                      {monthlyDetailedStats.handlingKeys.map((key, idx) => (
+                        <Bar key={key} dataKey={key} stackId="a" fill={COLORS[idx % COLORS.length]} maxBarSize={60} />
+                      ))}
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
               </section>
