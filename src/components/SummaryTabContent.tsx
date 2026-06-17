@@ -71,22 +71,22 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
       const stats = calculateStatistics(tab.records);
       
       const isEntry: any = { name: tab.name };
-      stats.chartInputStatus.forEach(item => {
-        isEntry[item.name] = item.value;
+      stats.chartInputStatus.forEach((item: any) => {
+        isEntry[item.name] = (item['Lần 1'] || 0) + (item['Lần 2'] || 0);
         inputStatusKeys.add(item.name);
       });
       inputStatusData.push(isEntry);
 
       const causeEntry: any = { name: tab.name };
-      stats.chartErrorCause.forEach(item => {
-        causeEntry[item.name] = item.value;
+      stats.chartErrorCause.forEach((item: any) => {
+        causeEntry[item.name] = (item['Lần 1'] || 0) + (item['Lần 2'] || 0);
         errorCauseKeys.add(item.name);
       });
       errorCauseData.push(causeEntry);
 
       const handlingEntry: any = { name: tab.name };
-      stats.chartHandling.forEach(item => {
-        handlingEntry[item.name] = item.value;
+      stats.chartHandling.forEach((item: any) => {
+        handlingEntry[item.name] = (item['Lần 1'] || 0) + (item['Lần 2'] || 0);
         handlingKeys.add(item.name);
       });
       handlingData.push(handlingEntry);
@@ -136,15 +136,78 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
 
       {summaryStats && (
         <>
-          {/* Results Summary cards */}
-          <section className="flex flex-col gap-3">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
-                Tổng cộng toàn chiến dịch
-              </h3>
+          {/* Executive Insights Section */}
+          <section className="bg-emerald-50 border-l-4 border-emerald-600 p-5 shadow-[2px_2px_0px_rgba(15,23,42,0.05)] rounded-none">
+            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono mb-3">Tóm tắt phân tích</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest font-mono">Tổng hồ sơ quét</p>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <p className="text-2xl font-black text-slate-900">{summaryStats.totalCLL.toLocaleString()}</p>
+                  <p className="text-xs font-bold text-slate-500">hồ sơ</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest font-mono">Trung bình thành công</p>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <p className="text-2xl font-black text-emerald-600">
+                    {summaryStats.totalCLL > 0 ? ((summaryStats.totalMerged / summaryStats.totalCLL) * 100).toFixed(1) : 0}%
+                  </p>
+                  <p className="text-xs font-bold text-slate-500">sau đối chiếu</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest font-mono">Biến động thời gian</p>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <p className="text-2xl font-black text-slate-900">{monthlyData.length}</p>
+                  <p className="text-xs font-bold text-slate-500">chu kỳ báo cáo</p>
+                </div>
+              </div>
             </div>
-            <DashboardStats stats={summaryStats} />
           </section>
+
+          {/* Detailed summary table */}
+          {monthlyData.length > 0 && (
+            <section className="bg-white border border-slate-900 rounded-none overflow-hidden shadow-[4px_4px_0px_rgba(15,23,42,0.1)] overflow-x-auto">
+              <table className="min-w-full text-left border-collapse whitespace-nowrap">
+                <thead>
+                  <tr className="bg-slate-900 text-white font-mono text-[10px] uppercase tracking-wider">
+                    <th className="px-4 py-3 border-b border-slate-900 w-1/5">Kỳ Báo Cáo</th>
+                    <th className="px-4 py-3 border-b border-slate-900 w-1/5 text-right relative group">
+                      KHỐI LƯỢNG ĐẦU VÀO
+                    </th>
+                    <th className="px-4 py-3 border-b border-slate-900 w-1/5 text-right relative group">
+                      <span className="text-emerald-400">GHÉP THÀNH CÔNG</span>
+                    </th>
+                    <th className="px-4 py-3 border-b border-slate-900 w-1/5 text-right relative group">
+                      <span className="text-rose-400">KHÔNG BẮT ĐƯỢC</span>
+                    </th>
+                    <th className="px-4 py-3 border-b border-slate-900 w-1/5 text-right relative group cursor-help">
+                      HIỆU SUẤT ĐỐI CHIẾU
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthlyData.map((mon, index) => (
+                    <tr key={mon.name} className={`hover:bg-slate-50 transition-colors ${index !== monthlyData.length - 1 ? 'border-b border-slate-200' : ''}`}>
+                      <td className="px-4 py-3 text-xs font-bold text-slate-900">{mon.name}</td>
+                      <td className="px-4 py-3 text-xs text-slate-600 text-right font-medium">{mon.Tổng.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-xs text-emerald-600 font-bold text-right">{mon.Ghép_Thành_Công.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-xs text-rose-500 font-bold text-right">{mon.Không_Ghép_Được.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="w-16 h-1.5 bg-slate-200 rounded-none overflow-hidden">
+                            <div className="h-full bg-emerald-500" style={{ width: `${mon.Tỷ_Lệ_Thành_Công}%` }} />
+                          </div>
+                          <span className="text-xs font-black text-slate-900">{mon.Tỷ_Lệ_Thành_Công}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          )}
 
           {/* Monthly Trends Charts */}
           {monthlyData.length > 0 && (
@@ -213,16 +276,17 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                 <div className="border-b border-slate-900 bg-slate-50 px-4 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Activity className="h-4 w-4 text-emerald-600" />
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Tình trạng đầu vào theo tháng</h3>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Cơ cấu Tình trạng đầu vào theo tháng (%)</h3>
                   </div>
                 </div>
                 <div className="p-4 h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={monthlyDetailedStats.inputStatusData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                    <BarChart data={monthlyDetailedStats.inputStatusData} stackOffset="expand" margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', fill: '#64748b' }} />
-                      <YAxis axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
+                      <YAxis tickFormatter={(val) => `${(val * 100).toFixed(0)}%`} axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
                       <RechartsTooltip 
+                        formatter={(value: number) => [`${(value * 100).toFixed(1)}%`, undefined]}
                         contentStyle={{ borderRadius: 0, border: '1px solid #0f172a', boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', fontSize: '12px', fontFamily: 'monospace' }}
                         itemStyle={{ fontWeight: 'bold' }}
                       />
@@ -240,16 +304,17 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                 <div className="border-b border-slate-900 bg-slate-50 px-4 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Nguyên nhân lỗi theo tháng</h3>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Cơ cấu Nguyên nhân lỗi theo tháng (%)</h3>
                   </div>
                 </div>
                 <div className="p-4 h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={monthlyDetailedStats.errorCauseData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                    <BarChart data={monthlyDetailedStats.errorCauseData} stackOffset="expand" margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', fill: '#64748b' }} />
-                      <YAxis axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
+                      <YAxis tickFormatter={(val) => `${(val * 100).toFixed(0)}%`} axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
                       <RechartsTooltip 
+                        formatter={(value: number) => [`${(value * 100).toFixed(1)}%`, undefined]}
                         contentStyle={{ borderRadius: 0, border: '1px solid #0f172a', boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', fontSize: '12px', fontFamily: 'monospace' }}
                         itemStyle={{ fontWeight: 'bold' }}
                       />
@@ -267,16 +332,17 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                 <div className="border-b border-slate-900 bg-slate-50 px-4 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Wrench className="h-4 w-4 text-rose-500" />
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Hướng xử lý theo tháng</h3>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono">Cơ cấu Hướng xử lý theo tháng (%)</h3>
                   </div>
                 </div>
                 <div className="p-4 h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={monthlyDetailedStats.handlingData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                    <BarChart data={monthlyDetailedStats.handlingData} stackOffset="expand" margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', fill: '#64748b' }} />
-                      <YAxis axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
+                      <YAxis tickFormatter={(val) => `${(val * 100).toFixed(0)}%`} axisLine={false} tickLine={false} dx={-10} tick={{ fontSize: 11, fontFamily: 'monospace', fill: '#64748b' }} />
                       <RechartsTooltip 
+                        formatter={(value: number) => [`${(value * 100).toFixed(1)}%`, undefined]}
                         contentStyle={{ borderRadius: 0, border: '1px solid #0f172a', boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', fontSize: '12px', fontFamily: 'monospace' }}
                         itemStyle={{ fontWeight: 'bold' }}
                       />
