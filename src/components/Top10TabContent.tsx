@@ -1,5 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { TabDataPayload } from '../types';
+import { MergedRecord } from '../types';
+
+type TabDataPayload = {
+  id: string;
+  name: string;
+  records: MergedRecord[];
+};
 import {
   BarChart,
   Bar,
@@ -11,8 +17,9 @@ import {
   ResponsiveContainer,
   LabelList
 } from 'recharts';
-import { Filter, Users, ShieldAlert, Server, Info, Download, XCircle } from 'lucide-react';
+import { Filter, Users, ShieldAlert, Server, Info, Download, XCircle, Image as ImageIcon } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
 
 interface Top10TabContentProps {
   tabsDataPayload: TabDataPayload[];
@@ -26,6 +33,7 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
   interface FilterCondition {
     type: FilterCategory;
     name: string;
+    level: 'l1' | 'l2';
   }
   const [filters, setFilters] = useState<FilterCondition[]>([]);
 
@@ -44,47 +52,47 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
     filters.forEach(filter => {
       result = result.filter(r => {
         if (filter.type === 'inputStatus') {
-          const val = dataLevel === 'l1' ? r.inputStatusL2 : r.inputStatusL1;
+          const val = filter.level === 'l1' ? r.inputStatusL2 : r.inputStatusL1;
           return val === filter.name;
         }
         if (filter.type === 'errorElement') {
-          const val = dataLevel === 'l1' ? r.errorElementL2 : r.errorElementL1;
+          const val = filter.level === 'l1' ? r.errorElementL2 : r.errorElementL1;
           return val === filter.name;
         }
         if (filter.type === 'errorCause') {
-          const val = dataLevel === 'l1' ? r.errorCauseL2 : r.errorCauseL1;
+          const val = filter.level === 'l1' ? r.errorCauseL2 : r.errorCauseL1;
           return val === filter.name;
         }
         if (filter.type === 'handling') {
-          const val = dataLevel === 'l1' ? r.handlingL2 : r.handlingL1;
+          const val = filter.level === 'l1' ? r.handlingL2 : r.handlingL1;
           return val === filter.name;
         }
         if (filter.type === 'staff') {
-          const val = dataLevel === 'l1' ? r.staffL2 : r.staffL1;
+          const val = filter.level === 'l1' ? r.staffL2 : r.staffL1;
           return val === filter.name;
         }
         return false;
       });
     });
     return result;
-  }, [filteredRecords, filters, dataLevel]);
+  }, [filteredRecords, filters]);
 
   const displayedDrilldownRecords = crossFilteredRecords;
   const totalFiltered = crossFilteredRecords.length;
 
   const handleChartClick = (type: FilterCategory, name: string) => {
     setFilters(prev => {
-      const existingIndex = prev.findIndex(f => f.type === type);
+      const existingIndex = prev.findIndex(f => f.type === type && f.level === dataLevel);
       if (existingIndex >= 0) {
         if (prev[existingIndex].name === name) {
           return prev.filter((_, i) => i !== existingIndex);
         } else {
           const newFilters = [...prev];
-          newFilters[existingIndex] = { type, name };
+          newFilters[existingIndex] = { type, name, level: dataLevel };
           return newFilters;
         }
       }
-      return [...prev, { type, name }];
+      return [...prev, { type, name, level: dataLevel }];
     });
   };
 
@@ -137,16 +145,25 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
         row["Tháng"] = record.tabName || '-';
       }
       row["Số HĐ"] = record.contractNumber || '-';
-      row["Mã NV L1 (CLPS)"] = record.staffL2 || '-';
-      row["Mã NV L2 (CLL)"] = record.staffL1 || '-';
-      row["Tình trạng đầu vào L1 (CLPS)"] = record.inputStatusL2 || '-';
-      row["Tình trạng đầu vào L2 (CLL)"] = record.inputStatusL1 || '-';
-      row["Phần tử lỗi L1 (CLPS)"] = record.errorElementL2 || '-';
-      row["Phần tử lỗi L2 (CLL)"] = record.errorElementL1 || '-';
-      row["Nguyên nhân lỗi L1 (CLPS)"] = record.errorCauseL2 || '-';
-      row["Nguyên nhân lỗi L2 (CLL)"] = record.errorCauseL1 || '-';
-      row["Hướng xử lý L1 (CLPS)"] = record.handlingL2 || '-';
-      row["Hướng xử lý L2 (CLL)"] = record.handlingL1 || '-';
+      
+      // L1 (CLL)
+      row["Tg hoàn tất (CLL)"] = record.completedTimeL1 || '-';
+      row["Ghi chú (CLL)"] = record.notesL1 || '-';
+      row["Tình trạng vào (CLL)"] = record.inputStatusL1 || '-';
+      row["Phần tử lỗi (CLL)"] = record.errorElementL1 || '-';
+      row["Nguyên nhân (CLL)"] = record.errorCauseL1 || '-';
+      row["Hướng xử lý (CLL)"] = record.handlingL1 || '-';
+      row["Nhân viên (CLL)"] = record.staffL1 || '-';
+
+      // L2 (CLPS)
+      row["Tg hoàn tất (CLPS)"] = record.completedTimeL2 || '-';
+      row["Ghi chú (CLPS)"] = record.notesL2 || '-';
+      row["Tình trạng vào (CLPS)"] = record.inputStatusL2 || '-';
+      row["Phần tử lỗi (CLPS)"] = record.errorElementL2 || '-';
+      row["Nguyên nhân (CLPS)"] = record.errorCauseL2 || '-';
+      row["Hướng xử lý (CLPS)"] = record.handlingL2 || '-';
+      row["Nhân viên (CLPS)"] = record.staffL2 || '-';
+      
       return row;
     });
 
@@ -169,8 +186,16 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
 
     const buildSheetData = (keyGetter: (r: any) => string) => {
       let resultData: any[] = [];
+      
+      // Calculate valid total items
+      const getTotalValid = (records: any[]) => records.filter(r => {
+        const val = keyGetter(r);
+        return val && val !== '-' && val.trim() !== '';
+      }).length;
+
       if (selectedMonthId === 'all') {
-        // Build records by month
+        const allTop10 = getTop10FromRecords(displayedDrilldownRecords, keyGetter);
+        
         const recordsByMonth: Record<string, any[]> = {};
         displayedDrilldownRecords.forEach(r => {
           const m = r.tabName || 'Không xác định';
@@ -178,26 +203,38 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
           recordsByMonth[m].push(r);
         });
 
-        // Add "All months" first
-        const allTop10 = getTop10FromRecords(displayedDrilldownRecords, keyGetter);
-        resultData.push({ "Tháng": "TỔNG HỢP", "STT": "", "Tên": "", "Số lượng": "" });
-        allTop10.forEach((item, i) => {
-          resultData.push({ "Tháng": "", "STT": i + 1, "Tên": item.name, "Số lượng": item.count });
-        });
+        const months = Object.keys(recordsByMonth);
+        const totalAll = getTotalValid(displayedDrilldownRecords);
 
-        // Add each month
-        Object.keys(recordsByMonth).forEach(monthName => {
-           resultData.push({ "Tháng": "", "STT": "", "Tên": "", "Số lượng": "" }); // Empty row separator
-           resultData.push({ "Tháng": monthName, "STT": "", "Tên": "", "Số lượng": "" });
-           const top10 = getTop10FromRecords(recordsByMonth[monthName], keyGetter);
-           top10.forEach((item, i) => {
-             resultData.push({ "Tháng": "", "STT": i + 1, "Tên": item.name, "Số lượng": item.count });
-           });
+        resultData = allTop10.map((item, i) => {
+          const rowData: any = {
+            "STT": i + 1,
+            "Tên": item.name,
+            "TỔNG CỘNG": item.count,
+            "Tỷ lệ % (TỔNG)": totalAll > 0 ? ((item.count / totalAll) * 100).toFixed(2) + '%' : '0%'
+          };
+
+          months.forEach(month => {
+            const countInMonth = recordsByMonth[month].filter(r => keyGetter(r) === item.name).length;
+            const totalInMonth = getTotalValid(recordsByMonth[month]);
+            
+            rowData[month] = countInMonth || 0;
+            rowData[`Tỷ lệ % (${month})`] = totalInMonth > 0 ? ((countInMonth / totalInMonth) * 100).toFixed(2) + '%' : '0%';
+          });
+
+          return rowData;
         });
       } else {
          const top10 = getTop10FromRecords(displayedDrilldownRecords, keyGetter);
+         const total = getTotalValid(displayedDrilldownRecords);
+         
          top10.forEach((item, i) => {
-             resultData.push({ "STT": i + 1, "Tên": item.name, "Số lượng": item.count });
+             resultData.push({ 
+                 "STT": i + 1, 
+                 "Tên": item.name, 
+                 "Số lượng": item.count,
+                 "Tỷ lệ (%)": total > 0 ? ((item.count / total) * 100).toFixed(2) + '%' : '0%'
+             });
          });
       }
       return XLSX.utils.json_to_sheet(resultData);
@@ -222,6 +259,27 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
     XLSX.writeFile(wb, fileName);
   };
 
+  const exportChartsToImage = async () => {
+    const chartsContainer = document.getElementById('top10-charts-container');
+    if (!chartsContainer) return;
+
+    try {
+      const canvas = await html2canvas(chartsContainer, {
+        scale: 2, // Higher resolution
+        backgroundColor: '#f8fafc', // slate-50
+        logging: false,
+      });
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `bieu_do_top10_${selectedMonthId}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('Lỗi khi xuất ảnh biểu đồ:', error);
+    }
+  };
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -242,7 +300,7 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
     return null;
   };
 
-  const renderChart = (data: any[], title: string, color: string, icon: React.ReactNode, type: 'inputStatus' | 'errorElement' | 'errorCause' | 'staff') => {
+  const renderChart = (data: any[], title: string, color: string, icon: React.ReactNode, type: 'inputStatus' | 'errorElement' | 'errorCause' | 'handling' | 'staff') => {
     return (
       <div className="bg-white border border-slate-200 p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-4">
@@ -302,7 +360,16 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
       <div className="bg-white border-2 border-slate-900 p-6 shadow-[4px_4px_0px_rgba(15,23,42,1)]">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6 mb-6">
           <div>
-            <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Top 10 Chỉ Số</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Top 10 Chỉ Số</h1>
+              <button
+                onClick={exportChartsToImage}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white font-bold text-[10px] uppercase tracking-wider hover:bg-blue-700 transition-colors border border-blue-800 shadow-[2px_2px_0px_rgba(30,58,138,1)] active:translate-y-[2px] active:translate-x-[2px] active:shadow-none"
+                title="Tải ảnh các biểu đồ"
+              >
+                <ImageIcon className="w-3.5 h-3.5" /> Tải ảnh biểu đồ
+              </button>
+            </div>
             <p className="text-sm text-slate-500 font-medium mt-1">Biểu đồ thống kê top 10 nguyên nhân và nhân viên dựa trên bộ lọc</p>
           </div>
           
@@ -355,7 +422,7 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      <div id="top10-charts-container" className="grid grid-cols-1 xl:grid-cols-2 gap-8 p-4 bg-white/50 rounded-lg">
         {renderChart(topInputStatus, 'Top 10 Tình trạng đầu vào', '#3b82f6', <ShieldAlert className="h-5 w-5" />, 'inputStatus')}
         {renderChart(topErrorElement, 'Top 10 Phần tử lỗi', '#eab308', <Server className="h-5 w-5" />, 'errorElement')}
         {renderChart(topErrorCause, 'Top 10 Nguyên nhân lỗi', '#ef4444', <Info className="h-5 w-5" />, 'errorCause')}

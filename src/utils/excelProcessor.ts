@@ -576,13 +576,23 @@ export async function exportToExcel(
     const titleCell = sheet.getCell('A1');
     titleCell.value = title;
     titleCell.font = { bold: true, size: 14, color: { argb: 'FF1E3A8A' } };
-    sheet.mergeCells('A1:C1');
+    sheet.mergeCells('A1:E1');
     sheet.getRow(1).height = 30;
+
+    // Calculate total sums for percentages
+    let totalL1 = 0;
+    let totalL2 = 0;
+    items.forEach(item => {
+      totalL1 += (item['Lần 1'] || 0);
+      totalL2 += (item['Lần 2'] || 0);
+    });
+
+    const fullHeaders = [...headers, 'Tỷ lệ %'];
 
     // Table Headers
     const headerRow = sheet.getRow(3);
     headerRow.height = 24;
-    headers.forEach((hName, index) => {
+    fullHeaders.forEach((hName, index) => {
       const cell = headerRow.getCell(index + 1);
       cell.value = hName;
       cell.fill = {
@@ -599,8 +609,15 @@ export async function exportToExcel(
     items.forEach((item, rIdx) => {
       const row = sheet.getRow(rIdx + 4);
       row.height = 22;
+      
       const values = mapFn(item);
-      values.forEach((val, cIdx) => {
+      const valL2 = item['Lần 2'] || 0;
+      
+      const pct = totalL1 > 0 ? ((valL2 / totalL1) * 100).toFixed(2) + '%' : '0%';
+      
+      const fullValues = [...values, pct];
+
+      fullValues.forEach((val, cIdx) => {
         const cell = row.getCell(cIdx + 1);
         cell.value = val;
         cell.border = borderStyle as any;
@@ -613,7 +630,8 @@ export async function exportToExcel(
     sheet.columns = [
       { width: 35 },
       { width: 18 },
-      { width: 18 }
+      { width: 18 },
+      { width: 15 }
     ];
   };
 
@@ -660,12 +678,18 @@ export async function exportToExcel(
   const tsTitle = transitionSheet.getCell('A1');
   tsTitle.value = 'Mẫu Dịch Chuyển Nguyên Nhân Lỗi (Lần 1 → Lần 2)';
   tsTitle.font = { bold: true, size: 14, color: { argb: 'FF1E3A8A' } };
-  transitionSheet.mergeCells('A1:C1');
+  transitionSheet.mergeCells('A1:D1');
   transitionSheet.getRow(1).height = 30;
 
   const tsHeader = transitionSheet.getRow(3);
   tsHeader.height = 24;
-  const tsHeaders = ['Nguyên nhân lỗi Lần 1', 'Nguyên nhân lỗi Lần 2', 'Số lượng dịch chuyển'];
+  const tsHeaders = ['Nguyên nhân lỗi Lần 1', 'Nguyên nhân lỗi Lần 2', 'Số lượng dịch chuyển', 'Tỷ lệ %'];
+  
+  let totalTransitions = 0;
+  stats.transitions.forEach((trans: TransitionRecord) => {
+    totalTransitions += trans.count;
+  });
+
   tsHeaders.forEach((hName, idx) => {
     const cell = tsHeader.getCell(idx + 1);
     cell.value = hName;
@@ -685,8 +709,9 @@ export async function exportToExcel(
     row.getCell(1).value = trans.from;
     row.getCell(2).value = trans.to;
     row.getCell(3).value = trans.count;
+    row.getCell(4).value = totalTransitions > 0 ? ((trans.count / totalTransitions) * 100).toFixed(2) + '%' : '0%';
 
-    for (let c = 1; c <= 3; c++) {
+    for (let c = 1; c <= 4; c++) {
       row.getCell(c).border = borderStyle as any;
     }
     row.getCell(1).font = { color: { argb: 'FF374151' } };
@@ -698,7 +723,8 @@ export async function exportToExcel(
   transitionSheet.columns = [
     { width: 35 },
     { width: 35 },
-    { width: 22 }
+    { width: 22 },
+    { width: 15 }
   ];
 
   // Write and return buffer
