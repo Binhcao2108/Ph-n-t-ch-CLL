@@ -12,6 +12,7 @@ import {
   LabelList
 } from 'recharts';
 import { Filter, Users, ShieldAlert, Server, Info, Download, XCircle } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface Top10TabContentProps {
   tabsDataPayload: TabDataPayload[];
@@ -21,10 +22,12 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
   const [selectedMonthId, setSelectedMonthId] = useState<string>('all');
   const [dataLevel, setDataLevel] = useState<'l1' | 'l2'>('l2');
   
-  const [selectedCategory, setSelectedCategory] = useState<{
-    type: 'inputStatus' | 'errorElement' | 'errorCause' | 'handling' | 'staff';
+  type FilterCategory = 'inputStatus' | 'errorElement' | 'errorCause' | 'handling' | 'staff';
+  interface FilterCondition {
+    type: FilterCategory;
     name: string;
-  } | null>(null);
+  }
+  const [filters, setFilters] = useState<FilterCondition[]>([]);
 
   const filteredRecords = useMemo(() => {
     let records = [];
@@ -38,35 +41,55 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
     return records;
   }, [tabsDataPayload, selectedMonthId]);
 
-  const displayedDrilldownRecords = useMemo(() => {
-    if (!selectedCategory) return [];
-    return filteredRecords.filter(r => {
-      if (selectedCategory.type === 'inputStatus') {
-        const val = dataLevel === 'l1' ? r.inputStatusL2 : r.inputStatusL1;
-        return val === selectedCategory.name;
-      }
-      if (selectedCategory.type === 'errorElement') {
-        const val = dataLevel === 'l1' ? r.errorElementL2 : r.errorElementL1;
-        return val === selectedCategory.name;
-      }
-      if (selectedCategory.type === 'errorCause') {
-        const val = dataLevel === 'l1' ? r.errorCauseL2 : r.errorCauseL1;
-        return val === selectedCategory.name;
-      }
-      if (selectedCategory.type === 'handling') {
-        const val = dataLevel === 'l1' ? r.handlingL2 : r.handlingL1;
-        return val === selectedCategory.name;
-      }
-      if (selectedCategory.type === 'staff') {
-        const val = dataLevel === 'l1' ? r.staffL2 : r.staffL1;
-        return val === selectedCategory.name;
-      }
-      return false;
+  const crossFilteredRecords = useMemo(() => {
+    if (filters.length === 0) return filteredRecords;
+    let result = filteredRecords;
+    filters.forEach(filter => {
+      result = result.filter(r => {
+        if (filter.type === 'inputStatus') {
+          const val = dataLevel === 'l1' ? r.inputStatusL2 : r.inputStatusL1;
+          return val === filter.name;
+        }
+        if (filter.type === 'errorElement') {
+          const val = dataLevel === 'l1' ? r.errorElementL2 : r.errorElementL1;
+          return val === filter.name;
+        }
+        if (filter.type === 'errorCause') {
+          const val = dataLevel === 'l1' ? r.errorCauseL2 : r.errorCauseL1;
+          return val === filter.name;
+        }
+        if (filter.type === 'handling') {
+          const val = dataLevel === 'l1' ? r.handlingL2 : r.handlingL1;
+          return val === filter.name;
+        }
+        if (filter.type === 'staff') {
+          const val = dataLevel === 'l1' ? r.staffL2 : r.staffL1;
+          return val === filter.name;
+        }
+        return false;
+      });
     });
-  }, [filteredRecords, selectedCategory, dataLevel]);
+    return result;
+  }, [filteredRecords, filters, dataLevel]);
 
-  const crossFilteredRecords = selectedCategory ? displayedDrilldownRecords : filteredRecords;
+  const displayedDrilldownRecords = crossFilteredRecords;
   const totalFiltered = crossFilteredRecords.length;
+
+  const handleChartClick = (type: FilterCategory, name: string) => {
+    setFilters(prev => {
+      const existingIndex = prev.findIndex(f => f.type === type);
+      if (existingIndex >= 0) {
+        if (prev[existingIndex].name === name) {
+          return prev.filter((_, i) => i !== existingIndex);
+        } else {
+          const newFilters = [...prev];
+          newFilters[existingIndex] = { type, name };
+          return newFilters;
+        }
+      }
+      return [...prev, { type, name }];
+    });
+  };
 
   const buildTop10 = (keyGetter: (r: any) => string) => {
     const counts: Record<string, number> = {};
@@ -110,44 +133,47 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
     return buildTop10(r => dataLevel === 'l1' ? r.staffL2 : r.staffL1);
   }, [crossFilteredRecords, dataLevel]);
 
-  const exportToCSV = () => {
-    const headers = [
-      "STT", 
-      "Số HĐ", 
-      "Mã NV L1 (CLPS)", "Mã NV L2 (CLL)", 
-      "Tình trạng đầu vào L1 (CLPS)", "Tình trạng đầu vào L2 (CLL)",
-      "Phần tử lỗi L1 (CLPS)", "Phần tử lỗi L2 (CLL)",
-      "Nguyên nhân lỗi L1 (CLPS)", "Nguyên nhân lỗi L2 (CLL)",
-      "Hướng xử lý L1 (CLPS)", "Hướng xử lý L2 (CLL)"
-    ];
-    let csvContent = headers.join(",") + "\n";
+  const exportToExcel = () => {
+    const dataDetail = displayedDrilldownRecords.map((record, index) => ({
+      "STT": index + 1,
+      "Số HĐ": record.contractNumber || '-',
+      "Mã NV L1 (CLPS)": record.staffL2 || '-',
+      "Mã NV L2 (CLL)": record.staffL1 || '-',
+      "Tình trạng đầu vào L1 (CLPS)": record.inputStatusL2 || '-',
+      "Tình trạng đầu vào L2 (CLL)": record.inputStatusL1 || '-',
+      "Phần tử lỗi L1 (CLPS)": record.errorElementL2 || '-',
+      "Phần tử lỗi L2 (CLL)": record.errorElementL1 || '-',
+      "Nguyên nhân lỗi L1 (CLPS)": record.errorCauseL2 || '-',
+      "Nguyên nhân lỗi L2 (CLL)": record.errorCauseL1 || '-',
+      "Hướng xử lý L1 (CLPS)": record.handlingL2 || '-',
+      "Hướng xử lý L2 (CLL)": record.handlingL1 || '-'
+    }));
 
-    displayedDrilldownRecords.forEach((record, index) => {
-      const row = [
-        index + 1,
-        `"${record.contractNumber || '-'}"`,
-        `"${record.staffL2 || '-'}"`,
-        `"${record.staffL1 || '-'}"`,
-        `"${record.inputStatusL2 || '-'}"`,
-        `"${record.inputStatusL1 || '-'}"`,
-        `"${record.errorElementL2 || '-'}"`,
-        `"${record.errorElementL1 || '-'}"`,
-        `"${record.errorCauseL2 || '-'}"`,
-        `"${record.errorCauseL1 || '-'}"`,
-        `"${record.handlingL2 || '-'}"`,
-        `"${record.handlingL1 || '-'}"`
-      ];
-      csvContent += row.join(",") + "\n";
-    });
+    const wsData = XLSX.utils.json_to_sheet(dataDetail);
 
-    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `chi_tiet_top10_${selectedCategory?.name || 'export'}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Prepare Top 10 data
+    const formatTop10 = (data: any[]) => data.map((item, i) => ({
+      "STT": i + 1,
+      "Tên": item.name,
+      "Số lượng": item.count
+    }));
+
+    const wsInputStatus = XLSX.utils.json_to_sheet(formatTop10(topInputStatus));
+    const wsErrorElement = XLSX.utils.json_to_sheet(formatTop10(topErrorElement));
+    const wsErrorCause = XLSX.utils.json_to_sheet(formatTop10(topErrorCause));
+    const wsHandling = XLSX.utils.json_to_sheet(formatTop10(topHandling));
+    const wsStaff = XLSX.utils.json_to_sheet(formatTop10(topStaff));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, wsData, "Dữ liệu chi tiết");
+    XLSX.utils.book_append_sheet(wb, wsInputStatus, "Top 10 Tình trạng DV");
+    XLSX.utils.book_append_sheet(wb, wsErrorElement, "Top 10 Phần tử lỗi");
+    XLSX.utils.book_append_sheet(wb, wsErrorCause, "Top 10 Nguyên nhân lỗi");
+    XLSX.utils.book_append_sheet(wb, wsHandling, "Top 10 Hướng xử lý");
+    XLSX.utils.book_append_sheet(wb, wsStaff, "Top 10 Nhân viên");
+
+    const fileName = `chi_tiet_top10_${filters.length > 0 ? filters.map(f => f.name).join('_') : 'export'}.xlsx`;
+    XLSX.writeFile(wb, fileName);
   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -198,7 +224,7 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
                   fill={color} 
                   radius={[0, 4, 4, 0]} 
                   maxBarSize={32}
-                  onClick={(data) => setSelectedCategory({ type, name: data.name })}
+                  onClick={(data) => handleChartClick(type, data.name)}
                   className="cursor-pointer hover:opacity-80 transition-opacity"
                 >
                   <LabelList 
@@ -252,7 +278,7 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
 
             <div className="flex items-center rounded-none overflow-hidden border-2 border-slate-300 w-full sm:w-auto">
               <button
-                onClick={() => { setDataLevel('l1'); setSelectedCategory(null); }}
+                onClick={() => { setDataLevel('l1'); setFilters([]); }}
                 className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${
                   dataLevel === 'l1' 
                     ? 'bg-slate-900 text-white' 
@@ -262,7 +288,7 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
                 Lần 1 (CLPS)
               </button>
               <button
-                onClick={() => { setDataLevel('l2'); setSelectedCategory(null); }}
+                onClick={() => { setDataLevel('l2'); setFilters([]); }}
                 className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors border-l-2 border-slate-300 ${
                   dataLevel === 'l2' 
                     ? 'bg-slate-900 text-white border-l-slate-900' 
@@ -291,17 +317,15 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
         {renderChart(topStaff, 'Top 10 Nhân viên', '#10b981', <Users className="h-5 w-5" />, 'staff')}
       </div>
 
-      {selectedCategory && (
+      {filters.length > 0 && (
         <div className="bg-white border-2 border-slate-900 p-6 shadow-[4px_4px_0px_rgba(15,23,42,1)] animate-fade-in mt-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-slate-200 pb-4 gap-4">
             <div>
-              <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
-                Chi tiết dữ liệu: <span className="text-amber-600">{selectedCategory.name}</span>
+              <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2 flex-wrap">
+                Chi tiết dữ liệu: <span className="text-amber-600">{filters.map(f => f.name).join(' + ')}</span>
               </h2>
               <div className="text-xs font-bold text-slate-500 font-mono mt-1">
-                Lọc theo {selectedCategory.type === 'inputStatus' ? 'Tình trạng đầu vào' : 
-                         selectedCategory.type === 'errorElement' ? 'Phần tử lỗi' : 
-                         selectedCategory.type === 'errorCause' ? 'Nguyên nhân' : 'Nhân viên'}
+                Lọc qua {filters.length} điều kiện
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -309,13 +333,13 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
                 SL: {displayedDrilldownRecords.length}
               </div>
               <button
-                onClick={exportToCSV}
+                onClick={exportToExcel}
                 className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider hover:bg-emerald-700 transition-colors border border-emerald-800 shadow-[2px_2px_0px_rgba(6,78,59,1)] active:translate-y-[2px] active:translate-x-[2px] active:shadow-none"
               >
                 <Download className="w-4 h-4" /> Tải Excel
               </button>
               <button
-                onClick={() => setSelectedCategory(null)}
+                onClick={() => setFilters([])}
                 className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs uppercase tracking-wider hover:bg-rose-100 hover:text-rose-700 transition-colors border border-slate-300 shadow-[2px_2px_0px_rgba(148,163,184,1)] active:translate-y-[2px] active:translate-x-[2px] active:shadow-none"
               >
                 <XCircle className="w-4 h-4" /> Bỏ lọc
