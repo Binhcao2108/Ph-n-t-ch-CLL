@@ -19,7 +19,6 @@ import {
 } from 'recharts';
 import { Filter, Users, ShieldAlert, Server, Info, Download, XCircle, Image as ImageIcon } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import html2canvas from 'html2canvas';
 
 interface Top10TabContentProps {
   tabsDataPayload: TabDataPayload[];
@@ -264,17 +263,22 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
     if (!chartsContainer) return;
 
     try {
-      const canvas = await html2canvas(chartsContainer, {
-        scale: 2, // Higher resolution
-        backgroundColor: '#f8fafc', // slate-50
-        logging: false,
+      const { toBlob } = await import('html-to-image');
+      const blob = await toBlob(chartsContainer, {
+        backgroundColor: '#f8fafc',
+        pixelRatio: 2,
       });
 
-      const dataUrl = canvas.toDataURL('image/png');
+      if (!blob) throw new Error('Không thể tạo file ảnh');
+
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.download = `bieu_do_top10_${selectedMonthId}.png`;
-      link.href = dataUrl;
+      link.href = url;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Lỗi khi xuất ảnh biểu đồ:', error);
     }
