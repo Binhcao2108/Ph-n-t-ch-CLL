@@ -30,15 +30,12 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
   const [filters, setFilters] = useState<FilterCondition[]>([]);
 
   const filteredRecords = useMemo(() => {
-    let records = [];
     if (selectedMonthId === 'all') {
-      records = tabsDataPayload.flatMap(t => t.records);
+      return tabsDataPayload.flatMap(t => t.records.map(r => ({ ...r, tabName: t.name })));
     } else {
       const tab = tabsDataPayload.find(t => t.id === selectedMonthId);
-      records = tab ? tab.records : [];
+      return tab ? tab.records.map(r => ({ ...r, tabName: tab.name })) : [];
     }
-    // Only count SUCCESS records or all? Let's count all that we have data for
-    return records;
   }, [tabsDataPayload, selectedMonthId]);
 
   const crossFilteredRecords = useMemo(() => {
@@ -134,35 +131,83 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
   }, [crossFilteredRecords, dataLevel]);
 
   const exportToExcel = () => {
-    const dataDetail = displayedDrilldownRecords.map((record, index) => ({
-      "STT": index + 1,
-      "Số HĐ": record.contractNumber || '-',
-      "Mã NV L1 (CLPS)": record.staffL2 || '-',
-      "Mã NV L2 (CLL)": record.staffL1 || '-',
-      "Tình trạng đầu vào L1 (CLPS)": record.inputStatusL2 || '-',
-      "Tình trạng đầu vào L2 (CLL)": record.inputStatusL1 || '-',
-      "Phần tử lỗi L1 (CLPS)": record.errorElementL2 || '-',
-      "Phần tử lỗi L2 (CLL)": record.errorElementL1 || '-',
-      "Nguyên nhân lỗi L1 (CLPS)": record.errorCauseL2 || '-',
-      "Nguyên nhân lỗi L2 (CLL)": record.errorCauseL1 || '-',
-      "Hướng xử lý L1 (CLPS)": record.handlingL2 || '-',
-      "Hướng xử lý L2 (CLL)": record.handlingL1 || '-'
-    }));
+    const dataDetail = displayedDrilldownRecords.map((record, index) => {
+      const row: any = { "STT": index + 1 };
+      if (selectedMonthId === 'all') {
+        row["Tháng"] = record.tabName || '-';
+      }
+      row["Số HĐ"] = record.contractNumber || '-';
+      row["Mã NV L1 (CLPS)"] = record.staffL2 || '-';
+      row["Mã NV L2 (CLL)"] = record.staffL1 || '-';
+      row["Tình trạng đầu vào L1 (CLPS)"] = record.inputStatusL2 || '-';
+      row["Tình trạng đầu vào L2 (CLL)"] = record.inputStatusL1 || '-';
+      row["Phần tử lỗi L1 (CLPS)"] = record.errorElementL2 || '-';
+      row["Phần tử lỗi L2 (CLL)"] = record.errorElementL1 || '-';
+      row["Nguyên nhân lỗi L1 (CLPS)"] = record.errorCauseL2 || '-';
+      row["Nguyên nhân lỗi L2 (CLL)"] = record.errorCauseL1 || '-';
+      row["Hướng xử lý L1 (CLPS)"] = record.handlingL2 || '-';
+      row["Hướng xử lý L2 (CLL)"] = record.handlingL1 || '-';
+      return row;
+    });
 
     const wsData = XLSX.utils.json_to_sheet(dataDetail);
 
-    // Prepare Top 10 data
-    const formatTop10 = (data: any[]) => data.map((item, i) => ({
-      "STT": i + 1,
-      "Tên": item.name,
-      "Số lượng": item.count
-    }));
+    // Helper to calculate Top 10 from records
+    const getTop10FromRecords = (records: any[], keyGetter: (r: any) => string) => {
+      const counts: Record<string, number> = {};
+      records.forEach(r => {
+        const val = keyGetter(r);
+        if (val && val !== '-' && val.trim() !== '') {
+          counts[val] = (counts[val] || 0) + 1;
+        }
+      });
+      return Object.entries(counts)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+    };
 
-    const wsInputStatus = XLSX.utils.json_to_sheet(formatTop10(topInputStatus));
-    const wsErrorElement = XLSX.utils.json_to_sheet(formatTop10(topErrorElement));
-    const wsErrorCause = XLSX.utils.json_to_sheet(formatTop10(topErrorCause));
-    const wsHandling = XLSX.utils.json_to_sheet(formatTop10(topHandling));
-    const wsStaff = XLSX.utils.json_to_sheet(formatTop10(topStaff));
+    const buildSheetData = (keyGetter: (r: any) => string) => {
+      let resultData: any[] = [];
+      if (selectedMonthId === 'all') {
+        // Build records by month
+        const recordsByMonth: Record<string, any[]> = {};
+        displayedDrilldownRecords.forEach(r => {
+          const m = r.tabName || 'Không xác định';
+          if (!recordsByMonth[m]) recordsByMonth[m] = [];
+          recordsByMonth[m].push(r);
+        });
+
+        // Add "All months" first
+        const allTop10 = getTop10FromRecords(displayedDrilldownRecords, keyGetter);
+        resultData.push({ "Tháng": "TỔNG HỢP", "STT": "", "Tên": "", "Số lượng": "" });
+        allTop10.forEach((item, i) => {
+          resultData.push({ "Tháng": "", "STT": i + 1, "Tên": item.name, "Số lượng": item.count });
+        });
+
+        // Add each month
+        Object.keys(recordsByMonth).forEach(monthName => {
+           resultData.push({ "Tháng": "", "STT": "", "Tên": "", "Số lượng": "" }); // Empty row separator
+           resultData.push({ "Tháng": monthName, "STT": "", "Tên": "", "Số lượng": "" });
+           const top10 = getTop10FromRecords(recordsByMonth[monthName], keyGetter);
+           top10.forEach((item, i) => {
+             resultData.push({ "Tháng": "", "STT": i + 1, "Tên": item.name, "Số lượng": item.count });
+           });
+        });
+      } else {
+         const top10 = getTop10FromRecords(displayedDrilldownRecords, keyGetter);
+         top10.forEach((item, i) => {
+             resultData.push({ "STT": i + 1, "Tên": item.name, "Số lượng": item.count });
+         });
+      }
+      return XLSX.utils.json_to_sheet(resultData);
+    };
+
+    const wsInputStatus = buildSheetData(r => dataLevel === 'l1' ? r.inputStatusL2 : r.inputStatusL1);
+    const wsErrorElement = buildSheetData(r => dataLevel === 'l1' ? r.errorElementL2 : r.errorElementL1);
+    const wsErrorCause = buildSheetData(r => dataLevel === 'l1' ? r.errorCauseL2 : r.errorCauseL1);
+    const wsHandling = buildSheetData(r => dataLevel === 'l1' ? r.handlingL2 : r.handlingL1);
+    const wsStaff = buildSheetData(r => dataLevel === 'l1' ? r.staffL2 : r.staffL1);
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, wsData, "Dữ liệu chi tiết");
@@ -172,7 +217,8 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
     XLSX.utils.book_append_sheet(wb, wsHandling, "Top 10 Hướng xử lý");
     XLSX.utils.book_append_sheet(wb, wsStaff, "Top 10 Nhân viên");
 
-    const fileName = `chi_tiet_top10_${filters.length > 0 ? filters.map(f => f.name).join('_') : 'export'}.xlsx`;
+    const activeFilters = filters.length > 0 ? filters.map(f => f.name).join('_') : 'all';
+    const fileName = `chi_tiet_top10_${selectedMonthId === 'all' ? 'tong_hop' : selectedMonthId}_${activeFilters}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 
