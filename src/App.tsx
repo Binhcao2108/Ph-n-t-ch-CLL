@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Navbar from './components/Navbar';
 import MonthTabContent from './components/MonthTabContent';
 import SummaryTabContent from './components/SummaryTabContent';
+import Top10TabContent from './components/Top10TabContent';
 import { Plus, X, Database } from 'lucide-react';
 import { MergedRecord } from './types';
 
@@ -103,6 +104,18 @@ export default function App() {
           <div className="flex-1 w-4" /> {/* Spacer */}
           
           <button 
+            onClick={() => setActiveTabId('top10-tab')}
+            className={`flex items-center gap-2 px-4 py-2 cursor-pointer font-bold font-mono text-xs uppercase transition-colors shrink-0 ${
+              activeTabId === 'top10-tab' 
+                ? 'bg-amber-600 text-white border-2 border-amber-600' 
+                : 'bg-amber-50 text-amber-700 border-2 border-amber-200 hover:border-amber-600 hover:text-amber-900'
+            }`}
+          >
+            <Database className="w-4 h-4" />
+            TOP 10 CHỈ SỐ
+          </button>
+
+          <button 
             onClick={() => setActiveTabId('summary-tab')}
             className={`flex items-center gap-2 px-4 py-2 cursor-pointer font-bold font-mono text-xs uppercase transition-colors shrink-0 ${
               activeTabId === 'summary-tab' 
@@ -127,6 +140,9 @@ export default function App() {
         ))}
         <div className={activeTabId === 'summary-tab' ? 'block' : 'hidden'}>
           <SummaryTabContent tabsDataPayload={summaryDataPayload} />
+        </div>
+        <div className={activeTabId === 'top10-tab' ? 'block' : 'hidden'}>
+          <Top10TabContent tabsDataPayload={summaryDataPayload} />
         </div>
       </main>
 

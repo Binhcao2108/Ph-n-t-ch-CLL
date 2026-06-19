@@ -319,3 +319,4 @@ export default function UploadBox({ onFilesSelected, isProcessing }: UploadBoxPr
     </div>
   );
 }
+

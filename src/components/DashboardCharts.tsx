@@ -196,10 +196,10 @@ export default function DashboardCharts({
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
-          {/* Dropdown Lần 1 (Báo hỏng) */}
+          {/* Dropdown Lần 2 (CLL) internally L1 */}
           {allStaffListL1.length > 0 && (
             <div className="flex items-center gap-2 relative z-50 animate-fade-in" ref={staffL1DropdownRef}>
-              <span className="text-[10px] uppercase font-mono font-bold text-slate-500">LỌC LẦN 1:</span>
+              <span className="text-[10px] uppercase font-mono font-bold text-slate-500">LỌC LẦN 2:</span>
               <div className="relative">
                 <button
                   type="button"
@@ -211,7 +211,7 @@ export default function DashboardCharts({
                 >
                   <span className="truncate max-w-[140px]">
                     {selectedStaffL1.length === 0
-                      ? 'TẤT CẢ (LẦN 1)'
+                      ? 'TẤT CẢ (LẦN 2)'
                       : `ĐÃ CHỌN (${selectedStaffL1.length}) NV`}
                   </span>
                   <span className="text-[8px] text-slate-500 font-mono">
@@ -226,7 +226,7 @@ export default function DashboardCharts({
                         <Search className="absolute left-2.5 h-3.5 w-3.5 text-slate-400" />
                         <input
                           type="text"
-                          placeholder="TÌM TÊN NV LẦN 1..."
+                          placeholder="TÌM TÊN NV LẦN 2..."
                           value={staffL1SearchQuery}
                           onChange={(e) => setStaffL1SearchQuery(e.target.value)}
                           className="w-full border border-slate-900 rounded-none pl-8 pr-2 py-1.5 bg-white text-[10px] font-mono font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900"
@@ -290,10 +290,10 @@ export default function DashboardCharts({
             </div>
           )}
 
-          {/* Dropdown Lần 2 (CLPS) */}
+          {/* Dropdown Lần 1 (CLPS) internally L2 */}
           {allStaffListL2.length > 0 && (
             <div className="flex items-center gap-2 relative z-50 animate-fade-in" ref={staffL2DropdownRef}>
-              <span className="text-[10px] uppercase font-mono font-bold text-slate-500">LỌC LẦN 2:</span>
+              <span className="text-[10px] uppercase font-mono font-bold text-slate-500">LỌC LẦN 1:</span>
               <div className="relative">
                 <button
                   type="button"
@@ -305,7 +305,7 @@ export default function DashboardCharts({
                 >
                   <span className="truncate max-w-[140px]">
                     {selectedStaffL2.length === 0
-                      ? 'TẤT CẢ (LẦN 2)'
+                      ? 'TẤT CẢ (LẦN 1)'
                       : `ĐÃ CHỌN (${selectedStaffL2.length}) NV`}
                   </span>
                   <span className="text-[8px] text-slate-500 font-mono">
@@ -320,7 +320,7 @@ export default function DashboardCharts({
                         <Search className="absolute left-2.5 h-3.5 w-3.5 text-slate-400" />
                         <input
                           type="text"
-                          placeholder="TÌM TÊN NV LẦN 2..."
+                          placeholder="TÌM TÊN NV LẦN 1..."
                           value={staffL2SearchQuery}
                           onChange={(e) => setStaffL2SearchQuery(e.target.value)}
                           className="w-full border border-slate-900 rounded-none pl-8 pr-2 py-1.5 bg-white text-[10px] font-mono font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900"
