@@ -26,7 +26,6 @@ interface Top10TabContentProps {
 
 export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProps) {
   const [selectedMonthId, setSelectedMonthId] = useState<string>('all');
-  const [dataLevel, setDataLevel] = useState<'l1' | 'l2'>('l2');
   
   type FilterCategory = 'inputStatus' | 'errorElement' | 'errorCause' | 'handling' | 'staff';
   interface FilterCondition {
@@ -51,23 +50,23 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
     filters.forEach(filter => {
       result = result.filter(r => {
         if (filter.type === 'inputStatus') {
-          const val = filter.level === 'l1' ? r.inputStatusL2 : r.inputStatusL1;
+          const val = filter.level === 'l1' ? r.inputStatusL1 : r.inputStatusL2;
           return val === filter.name;
         }
         if (filter.type === 'errorElement') {
-          const val = filter.level === 'l1' ? r.errorElementL2 : r.errorElementL1;
+          const val = filter.level === 'l1' ? r.errorElementL1 : r.errorElementL2;
           return val === filter.name;
         }
         if (filter.type === 'errorCause') {
-          const val = filter.level === 'l1' ? r.errorCauseL2 : r.errorCauseL1;
+          const val = filter.level === 'l1' ? r.errorCauseL1 : r.errorCauseL2;
           return val === filter.name;
         }
         if (filter.type === 'handling') {
-          const val = filter.level === 'l1' ? r.handlingL2 : r.handlingL1;
+          const val = filter.level === 'l1' ? r.handlingL1 : r.handlingL2;
           return val === filter.name;
         }
         if (filter.type === 'staff') {
-          const val = filter.level === 'l1' ? r.staffL2 : r.staffL1;
+          const val = filter.level === 'l1' ? r.staffL1 : r.staffL2;
           return val === filter.name;
         }
         return false;
@@ -79,19 +78,19 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
   const displayedDrilldownRecords = crossFilteredRecords;
   const totalFiltered = crossFilteredRecords.length;
 
-  const handleChartClick = (type: FilterCategory, name: string) => {
+  const handleChartClick = (type: FilterCategory, name: string, level: 'l1' | 'l2') => {
     setFilters(prev => {
-      const existingIndex = prev.findIndex(f => f.type === type && f.level === dataLevel);
+      const existingIndex = prev.findIndex(f => f.type === type && f.level === level);
       if (existingIndex >= 0) {
         if (prev[existingIndex].name === name) {
           return prev.filter((_, i) => i !== existingIndex);
         } else {
           const newFilters = [...prev];
-          newFilters[existingIndex] = { type, name, level: dataLevel };
+          newFilters[existingIndex] = { type, name, level };
           return newFilters;
         }
       }
-      return [...prev, { type, name, level: dataLevel }];
+      return [...prev, { type, name, level }];
     });
   };
 
@@ -117,25 +116,20 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
     return arr.slice(0, 10);
   };
 
-  const topInputStatus = useMemo(() => {
-    return buildTop10(r => dataLevel === 'l1' ? r.inputStatusL2 : r.inputStatusL1);
-  }, [crossFilteredRecords, dataLevel]);
+  const topInputStatusL1 = useMemo(() => buildTop10(r => r.inputStatusL1), [crossFilteredRecords]);
+  const topInputStatusL2 = useMemo(() => buildTop10(r => r.inputStatusL2), [crossFilteredRecords]);
 
-  const topErrorElement = useMemo(() => {
-    return buildTop10(r => dataLevel === 'l1' ? r.errorElementL2 : r.errorElementL1);
-  }, [crossFilteredRecords, dataLevel]);
+  const topErrorElementL1 = useMemo(() => buildTop10(r => r.errorElementL1), [crossFilteredRecords]);
+  const topErrorElementL2 = useMemo(() => buildTop10(r => r.errorElementL2), [crossFilteredRecords]);
 
-  const topErrorCause = useMemo(() => {
-    return buildTop10(r => dataLevel === 'l1' ? r.errorCauseL2 : r.errorCauseL1);
-  }, [crossFilteredRecords, dataLevel]);
+  const topErrorCauseL1 = useMemo(() => buildTop10(r => r.errorCauseL1), [crossFilteredRecords]);
+  const topErrorCauseL2 = useMemo(() => buildTop10(r => r.errorCauseL2), [crossFilteredRecords]);
 
-  const topHandling = useMemo(() => {
-    return buildTop10(r => dataLevel === 'l1' ? r.handlingL2 : r.handlingL1);
-  }, [crossFilteredRecords, dataLevel]);
+  const topHandlingL1 = useMemo(() => buildTop10(r => r.handlingL1), [crossFilteredRecords]);
+  const topHandlingL2 = useMemo(() => buildTop10(r => r.handlingL2), [crossFilteredRecords]);
 
-  const topStaff = useMemo(() => {
-    return buildTop10(r => dataLevel === 'l1' ? r.staffL2 : r.staffL1);
-  }, [crossFilteredRecords, dataLevel]);
+  const topStaffL1 = useMemo(() => buildTop10(r => r.staffL1), [crossFilteredRecords]);
+  const topStaffL2 = useMemo(() => buildTop10(r => r.staffL2), [crossFilteredRecords]);
 
   const exportToExcel = () => {
     const dataDetail = displayedDrilldownRecords.map((record, index) => {
@@ -239,19 +233,38 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
       return XLSX.utils.json_to_sheet(resultData);
     };
 
-    const wsInputStatus = buildSheetData(r => dataLevel === 'l1' ? r.inputStatusL2 : r.inputStatusL1);
-    const wsErrorElement = buildSheetData(r => dataLevel === 'l1' ? r.errorElementL2 : r.errorElementL1);
-    const wsErrorCause = buildSheetData(r => dataLevel === 'l1' ? r.errorCauseL2 : r.errorCauseL1);
-    const wsHandling = buildSheetData(r => dataLevel === 'l1' ? r.handlingL2 : r.handlingL1);
-    const wsStaff = buildSheetData(r => dataLevel === 'l1' ? r.staffL2 : r.staffL1);
+    const wsInputStatusL1 = buildSheetData(r => r.inputStatusL1);
+    const wsInputStatusL2 = buildSheetData(r => r.inputStatusL2);
+    
+    const wsErrorElementL1 = buildSheetData(r => r.errorElementL1);
+    const wsErrorElementL2 = buildSheetData(r => r.errorElementL2);
+    
+    const wsErrorCauseL1 = buildSheetData(r => r.errorCauseL1);
+    const wsErrorCauseL2 = buildSheetData(r => r.errorCauseL2);
+    
+    const wsHandlingL1 = buildSheetData(r => r.handlingL1);
+    const wsHandlingL2 = buildSheetData(r => r.handlingL2);
+    
+    const wsStaffL1 = buildSheetData(r => r.staffL1);
+    const wsStaffL2 = buildSheetData(r => r.staffL2);
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, wsData, "Dữ liệu chi tiết");
-    XLSX.utils.book_append_sheet(wb, wsInputStatus, "Top 10 Tình trạng DV");
-    XLSX.utils.book_append_sheet(wb, wsErrorElement, "Top 10 Phần tử lỗi");
-    XLSX.utils.book_append_sheet(wb, wsErrorCause, "Top 10 Nguyên nhân lỗi");
-    XLSX.utils.book_append_sheet(wb, wsHandling, "Top 10 Hướng xử lý");
-    XLSX.utils.book_append_sheet(wb, wsStaff, "Top 10 Nhân viên");
+    
+    XLSX.utils.book_append_sheet(wb, wsInputStatusL1, "Top 10 TTrạng L1");
+    XLSX.utils.book_append_sheet(wb, wsInputStatusL2, "Top 10 TTrạng L2");
+    
+    XLSX.utils.book_append_sheet(wb, wsErrorElementL1, "Top 10 P/tử L1");
+    XLSX.utils.book_append_sheet(wb, wsErrorElementL2, "Top 10 P/tử L2");
+    
+    XLSX.utils.book_append_sheet(wb, wsErrorCauseL1, "Top 10 N/nhân L1");
+    XLSX.utils.book_append_sheet(wb, wsErrorCauseL2, "Top 10 N/nhân L2");
+    
+    XLSX.utils.book_append_sheet(wb, wsHandlingL1, "Top 10 Hướng L1");
+    XLSX.utils.book_append_sheet(wb, wsHandlingL2, "Top 10 Hướng L2");
+    
+    XLSX.utils.book_append_sheet(wb, wsStaffL1, "Top 10 NV L1");
+    XLSX.utils.book_append_sheet(wb, wsStaffL2, "Top 10 NV L2");
 
     const activeFilters = filters.length > 0 ? filters.map(f => f.name).join('_') : 'all';
     const fileName = `chi_tiet_top10_${selectedMonthId === 'all' ? 'tong_hop' : selectedMonthId}_${activeFilters}.xlsx`;
@@ -304,7 +317,7 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
     return null;
   };
 
-  const renderChart = (data: any[], title: string, color: string, icon: React.ReactNode, type: 'inputStatus' | 'errorElement' | 'errorCause' | 'handling' | 'staff') => {
+  const renderChart = (data: any[], title: string, color: string, icon: React.ReactNode, type: 'inputStatus' | 'errorElement' | 'errorCause' | 'handling' | 'staff', level: 'l1' | 'l2') => {
     return (
       <div className="bg-white border border-slate-200 p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-4">
@@ -332,7 +345,7 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
                   fill={color} 
                   radius={[0, 4, 4, 0]} 
                   maxBarSize={32}
-                  onClick={(data) => handleChartClick(type, data.name)}
+                  onClick={(data) => handleChartClick(type, data.name, level)}
                   className="cursor-pointer hover:opacity-80 transition-opacity"
                 >
                   <LabelList 
@@ -392,29 +405,6 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
                 ))}
               </select>
             </div>
-
-            <div className="flex items-center rounded-none overflow-hidden border-2 border-slate-300 w-full sm:w-auto">
-              <button
-                onClick={() => { setDataLevel('l1'); setFilters([]); }}
-                className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${
-                  dataLevel === 'l1' 
-                    ? 'bg-slate-900 text-white' 
-                    : 'bg-white text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                Lần 1 (CLPS)
-              </button>
-              <button
-                onClick={() => { setDataLevel('l2'); setFilters([]); }}
-                className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors border-l-2 border-slate-300 ${
-                  dataLevel === 'l2' 
-                    ? 'bg-slate-900 text-white border-l-slate-900' 
-                    : 'bg-white text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                Lần 2 (CLL)
-              </button>
-            </div>
           </div>
         </div>
 
@@ -426,12 +416,27 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
         </div>
       </div>
 
-      <div id="top10-charts-container" className="grid grid-cols-1 xl:grid-cols-2 gap-8 p-4 bg-white/50 rounded-lg">
-        {renderChart(topInputStatus, 'Top 10 Tình trạng đầu vào', '#3b82f6', <ShieldAlert className="h-5 w-5" />, 'inputStatus')}
-        {renderChart(topErrorElement, 'Top 10 Phần tử lỗi', '#eab308', <Server className="h-5 w-5" />, 'errorElement')}
-        {renderChart(topErrorCause, 'Top 10 Nguyên nhân lỗi', '#ef4444', <Info className="h-5 w-5" />, 'errorCause')}
-        {renderChart(topHandling, 'Top 10 Hướng xử lý', '#a855f7', <Filter className="h-5 w-5" />, 'handling')}
-        {renderChart(topStaff, 'Top 10 Nhân viên', '#10b981', <Users className="h-5 w-5" />, 'staff')}
+      <div id="top10-charts-container" className="flex flex-col gap-12 p-6 bg-slate-50 border border-slate-200">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {renderChart(topInputStatusL1, 'Top 10 Tình trạng (L1 - CLPS)', '#3b82f6', <ShieldAlert className="h-5 w-5" />, 'inputStatus', 'l1')}
+          {renderChart(topInputStatusL2, 'Top 10 Tình trạng (L2 - CLL)', '#1d4ed8', <ShieldAlert className="h-5 w-5" />, 'inputStatus', 'l2')}
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {renderChart(topErrorElementL1, 'Top 10 Phần tử lỗi (L1 - CLPS)', '#eab308', <Server className="h-5 w-5" />, 'errorElement', 'l1')}
+          {renderChart(topErrorElementL2, 'Top 10 Phần tử lỗi (L2 - CLL)', '#a16207', <Server className="h-5 w-5" />, 'errorElement', 'l2')}
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {renderChart(topErrorCauseL1, 'Top 10 Nguyên nhân lỗi (L1 - CLPS)', '#ef4444', <Info className="h-5 w-5" />, 'errorCause', 'l1')}
+          {renderChart(topErrorCauseL2, 'Top 10 Nguyên nhân lỗi (L2 - CLL)', '#b91c1c', <Info className="h-5 w-5" />, 'errorCause', 'l2')}
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {renderChart(topHandlingL1, 'Top 10 Hướng xử lý (L1 - CLPS)', '#a855f7', <Filter className="h-5 w-5" />, 'handling', 'l1')}
+          {renderChart(topHandlingL2, 'Top 10 Hướng xử lý (L2 - CLL)', '#7e22ce', <Filter className="h-5 w-5" />, 'handling', 'l2')}
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {renderChart(topStaffL1, 'Top 10 Nhân viên (L1 - CLPS)', '#10b981', <Users className="h-5 w-5" />, 'staff', 'l1')}
+          {renderChart(topStaffL2, 'Top 10 Nhân viên (L2 - CLL)', '#047857', <Users className="h-5 w-5" />, 'staff', 'l2')}
+        </div>
       </div>
 
       {filters.length > 0 && (
