@@ -921,31 +921,31 @@ export default function CombinedPreviewTable({ records, chartFilter, onClearChar
               <th rowSpan={2} className="p-3 bg-slate-100 text-[10px] font-bold text-slate-700 uppercase tracking-widest text-center w-40 sticky left-0 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.1)] border-r border-slate-300 font-mono">
                 Số HĐ
               </th>
-              <th colSpan={7} className="p-2.5 bg-slate-900 text-[10px] font-black text-white text-center tracking-widest border-r border-slate-800 uppercase font-mono">
-                LẦN 2 (Chất lượng luồng - CLL)
+              <th colSpan={7} className="p-3 bg-slate-900 text-[12px] font-black text-white text-center tracking-widest border-r border-slate-800 uppercase font-mono shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]">
+                LẦN 1 (Chất lượng phát sóng - Báo hỏng)
               </th>
-              <th colSpan={7} className="p-2.5 bg-emerald-950 text-[10px] font-black text-emerald-250 text-center tracking-widest uppercase font-mono">
-                LẦN 1 (Chất lượng phát sóng - CLPS)
+              <th colSpan={7} className="p-3 bg-emerald-800 text-[12px] font-black text-white text-center tracking-widest uppercase font-mono shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]">
+                LẦN 2 (Chất lượng luồng - CLL)
               </th>
             </tr>
             <tr className="border-b border-slate-900 bg-slate-50 text-[10px] text-slate-500 font-bold font-mono uppercase tracking-wider">
-              {/* L1 Headers (CLL physically) */}
-              <th className="p-2.5 text-left w-36 border-r border-slate-200">Tg hoàn tất (CLL)</th>
-              <th className="p-2.5 text-left w-64 border-r border-slate-200">Ghi chú (CLL)</th>
-              <th className="p-2.5 text-left w-44 border-r border-slate-200">Tình trạng vào (CLL)</th>
-              <th className="p-2.5 text-left w-44 border-r border-slate-200">Phần tử lỗi (CLL)</th>
-              <th className="p-2.5 text-left w-44 border-r border-slate-200">Nguyên nhân (CLL)</th>
-              <th className="p-2.5 text-left w-44 border-r border-slate-200">Hướng xử lý (CLL)</th>
-              <th className="p-2.5 text-left w-44 border-r border-slate-300">Nhân viên (CLL)</th>
+              {/* L1 Headers (CLPS) */}
+              <th className="p-3 bg-slate-100 text-slate-700 text-left w-36 border-r border-slate-300 font-bold uppercase tracking-wider">Tg hoàn tất (L1)</th>
+              <th className="p-3 bg-slate-100 text-slate-700 text-left w-64 border-r border-slate-300 font-bold uppercase tracking-wider">Ghi chú (L1)</th>
+              <th className="p-3 bg-slate-100 text-slate-700 text-left w-44 border-r border-slate-300 font-bold uppercase tracking-wider">Tình trạng vào (L1)</th>
+              <th className="p-3 bg-slate-100 text-slate-700 text-left w-44 border-r border-slate-300 font-bold uppercase tracking-wider">Phần tử lỗi (L1)</th>
+              <th className="p-3 bg-slate-100 text-slate-700 text-left w-44 border-r border-slate-300 font-bold uppercase tracking-wider">Nguyên nhân (L1)</th>
+              <th className="p-3 bg-slate-100 text-slate-700 text-left w-44 border-r border-slate-300 font-bold uppercase tracking-wider">Hướng xử lý (L1)</th>
+              <th className="p-3 bg-slate-100 text-slate-700 text-left w-44 border-r border-slate-800 font-bold uppercase tracking-wider">Nhân viên (L1)</th>
 
-              {/* L2 Headers (CLPS physically) */}
-              <th className="p-2.5 text-left w-36 border-r border-slate-200">Tg hoàn tất (CLPS)</th>
-              <th className="p-2.5 text-left w-64 border-r border-slate-200">Ghi chú (CLPS)</th>
-              <th className="p-2.5 text-left w-44 border-r border-slate-200">Tình trạng vào (CLPS)</th>
-              <th className="p-2.5 text-left w-44 border-r border-slate-200">Phần tử lỗi (CLPS)</th>
-              <th className="p-2.5 text-left w-44 border-r border-slate-200">Nguyên nhân (CLPS)</th>
-              <th className="p-2.5 text-left w-44 border-r border-slate-200">Hướng xử lý (CLPS)</th>
-              <th className="p-2.5 text-left w-44">Nhân viên (CLPS)</th>
+              {/* L2 Headers (CLL) */}
+              <th className="p-3 bg-emerald-50 text-emerald-900 text-left w-36 border-r border-emerald-200 font-bold uppercase tracking-wider">Tg hoàn tất (L2)</th>
+              <th className="p-3 bg-emerald-50 text-emerald-900 text-left w-64 border-r border-emerald-200 font-bold uppercase tracking-wider">Ghi chú (L2)</th>
+              <th className="p-3 bg-emerald-50 text-emerald-900 text-left w-44 border-r border-emerald-200 font-bold uppercase tracking-wider">Tình trạng vào (L2)</th>
+              <th className="p-3 bg-emerald-50 text-emerald-900 text-left w-44 border-r border-emerald-200 font-bold uppercase tracking-wider">Phần tử lỗi (L2)</th>
+              <th className="p-3 bg-emerald-50 text-emerald-900 text-left w-44 border-r border-emerald-200 font-bold uppercase tracking-wider">Nguyên nhân (L2)</th>
+              <th className="p-3 bg-emerald-50 text-emerald-900 text-left w-44 border-r border-emerald-200 font-bold uppercase tracking-wider">Hướng xử lý (L2)</th>
+              <th className="p-3 bg-emerald-50 text-emerald-900 text-left w-44 font-bold uppercase tracking-wider">Nhân viên (L2)</th>
             </tr>
           </thead>
 

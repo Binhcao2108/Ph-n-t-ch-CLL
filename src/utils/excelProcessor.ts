@@ -611,9 +611,10 @@ export async function exportToExcel(
       row.height = 22;
       
       const values = mapFn(item);
+      const valL1 = item['Lần 1'] || 0;
       const valL2 = item['Lần 2'] || 0;
       
-      const pct = totalL1 > 0 ? ((valL2 / totalL1) * 100).toFixed(2) + '%' : '0%';
+      const pct = valL1 > 0 ? ((valL2 / valL1) * 100).toFixed(2) + '%' : '0%';
       
       const fullValues = [...values, pct];
 
