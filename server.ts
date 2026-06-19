@@ -23,14 +23,19 @@ async function startServer() {
 ${JSON.stringify(req.body, null, 2)}
 
 Hãy phân tích và đưa ra đánh giá chuyên sâu mang tính chiến lược dựa trên các số liệu trên:
-1. Xác định các xu hướng chính (tăng/giảm đột biến).
-2. Phân tích nguyên nhân gốc rễ và đánh giá rủi ro hoặc tác động lên hệ thống.
-3. Cung cấp các đề xuất cải thiện thực tế nhằm giảm thiểu lỗi trong các tháng tiếp theo.
+1. Đưa ra "Các chỉ số cần chú ý" lên trên cùng tiên (3-5 Bullet points nổi bật nhất/vấn đề cần quan tâm nhất).
+2. Xác định các xu hướng chính (tăng/giảm đột biến).
+3. Phân tích nguyên nhân gốc rễ và đánh giá rủi ro hoặc tác động lên hệ thống.
+4. Cung cấp các đề xuất cải thiện thực tế nhằm giảm thiểu lỗi trong các tháng tiếp theo.
 
 Yêu cầu trình bày:
-- Viết văn phong cực kỳ chuyên nghiệp, súc tích (có thể dùng cấu trúc 3 phần rõ ràng: Tổng quan, Phân tích chi tiết, Đề xuất).
+- Viết văn phong cực kỳ chuyên nghiệp, súc tích. Cấu trúc bài phân tích: 
+   + Các chỉ số cần chú ý hàng đầu
+   + Tổng quan & Xu hướng
+   + Phân tích nguyên nhân & Rủi ro
+   + Đề xuất cải thiện
 - Dùng Markdown hiệu quả (sử dụng in đậm cho keywords, dùng bullet points hoặc numbered lists).
-- Hạn chế các nội dung thừa, hãy tập trung đi thẳng vào dữ liệu.`;
+- Hạn chế các nội dung thừa, hãy tập trung đi thẳng vào bản chất dữ liệu.`;
 
       let response;
       try {

@@ -17,6 +17,57 @@ interface MultiSelectDropdownProps {
   colorTheme?: 'slate' | 'emerald';
 }
 
+const Top10StaffTable = ({ data, theme }: { data: [string, number][], theme: 'slate' | 'emerald' }) => {
+  if (data.length === 0) return <div className="text-[10px] italic text-slate-500 font-mono">Không có dữ liệu</div>;
+  
+  const half = Math.ceil(data.length / 2);
+  const col1 = data.slice(0, 5);
+  const col2 = data.slice(5, 10);
+  
+  const renderRow = ([name, count]: [string, number], index: number) => (
+    <tr key={name} className={`border-b ${theme === 'slate' ? 'border-slate-200 hover:bg-slate-50' : 'border-emerald-100 hover:bg-emerald-50'} last:border-0`}>
+       <td className={`p-1.5 text-center font-black ${theme === 'slate' ? 'text-slate-500 border-r border-slate-200' : 'text-emerald-600 border-r border-emerald-100'}`}>{index + 1}</td>
+       <td className={`p-1.5 font-bold truncate max-w-[150px] sm:max-w-[180px] ${theme === 'slate' ? 'text-slate-800 border-r border-slate-200' : 'text-emerald-900 border-r border-emerald-100'}`} title={name}>{name || '(Trống)'}</td>
+       <td className={`p-1.5 text-right font-black ${theme === 'slate' ? 'text-slate-900' : 'text-emerald-700'}`}>{count}</td>
+    </tr>
+  );
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+       <div className={`overflow-hidden border ${theme === 'slate' ? 'border-slate-900' : 'border-emerald-800'}`}>
+         <table className="w-full text-left border-collapse bg-white">
+           <thead>
+             <tr className={`text-[9px] uppercase tracking-widest font-black font-mono ${theme === 'slate' ? 'bg-slate-900 text-white' : 'bg-emerald-800 text-white'}`}>
+                <th className="p-1.5 w-10 text-center border-r border-white/20">STT</th>
+                <th className="p-1.5 border-r border-white/20">Tên Nhân Sự</th>
+                <th className="p-1.5 w-16 text-right">SL</th>
+             </tr>
+           </thead>
+           <tbody className="text-[10px] font-mono">
+             {col1.map((item, idx) => renderRow(item, idx))}
+           </tbody>
+         </table>
+       </div>
+       {col2.length > 0 && (
+         <div className={`overflow-hidden border ${theme === 'slate' ? 'border-slate-900' : 'border-emerald-800'}`}>
+           <table className="w-full text-left border-collapse bg-white">
+             <thead>
+               <tr className={`text-[9px] uppercase tracking-widest font-black font-mono ${theme === 'slate' ? 'bg-slate-900 text-white' : 'bg-emerald-800 text-white'}`}>
+                  <th className="p-1.5 w-10 text-center border-r border-white/20">STT</th>
+                  <th className="p-1.5 border-r border-white/20">Tên Nhân Sự</th>
+                  <th className="p-1.5 w-16 text-right">SL</th>
+               </tr>
+             </thead>
+             <tbody className="text-[10px] font-mono">
+               {col2.map((item, idx) => renderRow(item, idx + 5))}
+             </tbody>
+           </table>
+         </div>
+       )}
+    </div>
+  );
+};
+
 function MultiSelectDropdown({
   label,
   placeholder,
@@ -462,6 +513,30 @@ export default function CombinedPreviewTable({ records, chartFilter, onClearChar
     );
   });
 
+  const top10StaffL1 = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredRecords.forEach(r => {
+      if (r.staffL1) {
+        counts[r.staffL1] = (counts[r.staffL1] || 0) + 1;
+      }
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+  }, [filteredRecords]);
+
+  const top10StaffL2 = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredRecords.forEach(r => {
+      if (r.staffL2) {
+        counts[r.staffL2] = (counts[r.staffL2] || 0) + 1;
+      }
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+  }, [filteredRecords]);
+
   // Check if any active filter is applied
   const isAnyFilterActive = 
     selectedInputStatusesL1.length > 0 ||
@@ -713,6 +788,12 @@ export default function CombinedPreviewTable({ records, chartFilter, onClearChar
               colorTheme="slate"
             />
           </div>
+          
+          {/* Top 10 Nhân Sự L1 Table */}
+          <div className="mt-5 pt-4 border-t border-slate-300 w-full xl:w-2/3">
+             <h4 className="text-[10px] font-black text-slate-700 uppercase tracking-widest mb-3 font-mono">Top 10 Nhân Sự Lần 1 (Theo hệ thống lọc)</h4>
+             <Top10StaffTable data={top10StaffL1} theme="slate" />
+          </div>
         </div>
 
         {/* LẦN 2: CLPS / NGHIỆM THU (L2) */}
@@ -796,6 +877,12 @@ export default function CombinedPreviewTable({ records, chartFilter, onClearChar
               allLabel={`-- TẤT CẢ NHÂN VIÊN L2 (${filteredStaffsL2.length}) --`}
               colorTheme="emerald"
             />
+          </div>
+
+          {/* Top 10 Nhân Sự L2 Table */}
+          <div className="mt-5 pt-4 border-t border-emerald-300 w-full xl:w-2/3">
+             <h4 className="text-[10px] font-black text-emerald-800 uppercase tracking-widest mb-3 font-mono">Top 10 Nhân Sự Lần 2 (Theo hệ thống lọc)</h4>
+             <Top10StaffTable data={top10StaffL2} theme="emerald" />
           </div>
         </div>
       </div>

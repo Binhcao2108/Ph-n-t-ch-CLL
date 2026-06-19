@@ -49,14 +49,13 @@ export default function App() {
     setTabsData(prev => ({ ...prev, [tabId]: records }));
   };
 
-  // Combine all records across all month tabs
-  const allCombinedRecords = Object.values(tabsData).flat() as MergedRecord[];
+  const allCombinedRecords = React.useMemo(() => Object.values(tabsData).flat() as MergedRecord[], [tabsData]);
 
-  const summaryDataPayload = tabs.map(tab => ({
+  const summaryDataPayload = React.useMemo(() => tabs.map(tab => ({
     id: tab.id,
     name: tab.name,
     records: tabsData[tab.id] || []
-  }));
+  })), [tabs, tabsData]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 antialiased">

@@ -89,6 +89,130 @@ const CustomTooltip = ({ active, payload, label, options }: any) => {
   return null;
 };
 
+const INITIAL_CUSTOM_GROUPS: CustomGroup[] = [
+  {
+    id: 'group_fpl',
+    categoryId: 'inputStatus',
+    name: 'FPL',
+    keys: [
+      'Lỗi không sử dụng được tính năng điều khiển giọng nói', 
+      'Lỗi kết nối BOX và TV (TV không nhận tín hiệu từ Box)',
+      'Truyền hình không xem được tất cả kênh',
+      'Portal màn hình đen không có logo FPT',
+      'Truyền hình mất hình/ mất tiếng một vài kênh',
+      'Truyền hình mất hình/ mất tiếng tất cả kênh',
+      'Truyền hình giật xé hình/ méo tiếng',
+      'Lỗi App - Xem camera báo lỗi ngoại tuyến',
+      'Lỗi BOX không kết nối được Net (lỗi kết nối dịch vụ)',
+      'Truyền hình không xem được một vài kênh',
+      'KH cần thay/ lắp đặt, kết nối BOX',
+      'Đăng nhập vượt quá thiết bị',
+      'Lỗi ứng dụng trên BOX (Youtube, vnexpress, ...)',
+      'Box IPTV (Linux) - Mã lỗi - 2017',
+      'Lỗi hệ thống FPT Play - Lỗi update firmware',
+      'Lỗi hệ thống FPT Play - Xem đứng hình giật hình',
+      'Portal màn hình đen có logo FPT',
+      'Portal không load được đầy đủ hình ảnh',
+      'Android (Box OTT, SmartTV, Mobile) mã lỗi - 2',
+      'Lỗi hệ thống FPT Play - Không xem được phim truyện/ Truyền hình',
+      'VOD không xem được (phim truyện, TH xem lại, ...)',
+      'Lỗi App FPT Play trên TV/Mobile'
+    ]
+  },
+  {
+    id: 'group_fli',
+    categoryId: 'inputStatus',
+    name: 'FLI',
+    keys: [
+      '[CMR] KH xem camera báo ngoại tuyến (CMR ngoại tuyến)',
+      '[CMR] Không xem lại được FULL',
+      '[CMR] Không xem được live',
+      '[CMR] KH yêu cầu di chuyển vị trí FPT Camera',
+      '[CMR] KH cần thay/cài đặt/kết nối camera',
+      '[CMR] Không thể thêm được camera',
+      '[CMR] KH đã thanh toán, HĐ đã nhận code, nhưng KH chưa nhận được code',
+      '[CMR-VMS] sai tài khoản/ mật khẩu',
+      '[CMR] Hình ảnh bị giật, xé hình, nhòe màu, chất lượng hình ảnh kém',
+      'Lỗi App - Lỗi đăng nhập',
+      '[CMR] KH có nhu cầu chỉnh góc Camera',
+      'Hướng dẫn xem lại',
+      '[CMR] Cảnh báo nhận diện người không chính xác',
+      '[CMR] Có cảnh báo về máy nhưng không có clip chuyển động',
+      '[CMR] Không có cảnh báo & clip chuyển động',
+      'Hướng dẫn tải video',
+      '[CMR] Không lên nguồn',
+      'Kích hoạt tài khoản',
+      '[CMR] Không load được video khoảnh khắc',
+      '[CMR] KH cần hướng dẫn sử dụng Camera, App',
+      'Lỗi thiết bị FPT Camera',
+      '[CMR] Camera bị ám tím',
+      '[CMR] Không kết nối được mạng LAN/Wifi',
+      'Lỗi App',
+      '[CMR] Lỗi đăng nhập - Không nhận được OTP',
+      '[CMR] có vấn đề về đàm thoại (rè, hú, có tiếng nước sôi, loa bé, míc bé ...)',
+      '[CMR] Kết nối được LAN (Wifi) nhưng không đẩy lên được cloud',
+      '[CMR-VMS] NVR ngoại tuyến'
+    ]
+  },
+  {
+    id: 'group_mang_cham',
+    categoryId: 'inputStatus',
+    name: 'Mạng Chậm',
+    keys: [
+      'WiFi sóng yếu hoặc chập chờn',
+      'Truy cập mạng chậm hoặc chập chờn',
+      'Không sử dụng được internet',
+      'Wifi sóng tốt - kết nối được nhưng truy cập chậm hoặc chập chờn',
+      'WiFi sóng tốt nhưng không kết nối được wifi',
+      'Lỗi hệ thống - Có tín hiệu quang nhưng không IP WAN',
+      'Wifi không thấy sóng',
+      'Wifi sóng tốt - kết nối được nhưng không truy cập được Internet',
+      'Có tín hiệu quang nhưng IP WAN 169.254.x.x',
+      'Có tín hiệu quang nhưng không IP WAN',
+      'Không truy cập được một số dịch vụ hoặc website',
+      'Lỗi hệ thống - Lỗi truy cập web',
+      'Truy cập các dịch vụ quốc Tế chập chờn(Facebook, youtube, tiktok, ...)',
+      'Có IP WAN, không truy cập được',
+      'Có tín hiệu quang nhưng không ổn định / suy hao không đạt chuẩn',
+      'Game Lag'
+    ]
+  },
+  {
+    id: 'group_vat_ly',
+    categoryId: 'inputStatus',
+    name: 'Vật Lý',
+    keys: [
+      'Không có tín hiệu quang (mkn)',
+      'Tín hiệu Không ổn định, suy hao Không đạt chuẩn',
+      'KH yêu cầu di chuyển dây thuê bao (lastmile)',
+      'KH yêu cầu di chuyển dây/ hộp',
+      'Rớt phiên kết nối liên tục/ rớt định kỳ',
+      'Lỗi hệ thống - Lỗi POP'
+    ]
+  },
+  {
+    id: 'group_hiefpt',
+    categoryId: 'inputStatus',
+    name: 'Lỗi HIFPT',
+    keys: [
+      'Lỗi ứng dụng Hi FPT - Không ghi nhận thông tin modem',
+      'Lỗi App - Không ghi nhận thông tin modem',
+      'Lỗi ứng dụng Hi FPT - Lỗi chức năng quản lý thiết bị',
+      'Không liên kết được hợp đồng'
+    ]
+  },
+  {
+    id: 'group_khac',
+    categoryId: 'inputStatus',
+    name: 'Khác',
+    keys: [
+      '(Trống)',
+      'Chương trình KH thân thiết',
+      'Dịch vụ của đối tác (Mua bán, bảo dưỡng, ...)'
+    ]
+  }
+];
+
 export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload: TabDataPayload[] }) {
   // Aggregate data for stats
   const allRecords = useMemo(() => tabsDataPayload.flatMap(t => t.records), [tabsDataPayload]);
@@ -116,6 +240,7 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
         const successRate = total > 0 ? parseFloat(((success / total) * 100).toFixed(1)) : 0;
         
         return {
+          id: tab.id,
           name: tab.name,
           Tổng: total,
           Ghép_Thành_Công: success,
@@ -187,7 +312,7 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
   const [selectedInputStatusKeys, setSelectedInputStatusKeys] = useState<string[]>([]);
   const [selectedErrorCauseKeys, setSelectedErrorCauseKeys] = useState<string[]>([]);
   const [selectedHandlingKeys, setSelectedHandlingKeys] = useState<string[]>([]);
-  const [customGroups, setCustomGroups] = useState<CustomGroup[]>([]);
+  const [customGroups, setCustomGroups] = useState<CustomGroup[]>(INITIAL_CUSTOM_GROUPS);
   const [groupBuilder, setGroupBuilder] = useState<GroupBuilderState | null>(null);
   const [initialized, setInitialized] = useState(false);
 
@@ -222,12 +347,13 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
 
   useEffect(() => {
     if (!initialized && monthlyDetailedStats.inputStatusKeys.length > 0) {
-      setSelectedInputStatusKeys(monthlyDetailedStats.inputStatusKeys.slice(0, 5));
+      setSelectedInputStatusKeys(INITIAL_CUSTOM_GROUPS.filter(g => g.categoryId === 'inputStatus').map(g => g.id));
       setSelectedErrorCauseKeys(monthlyDetailedStats.errorCauseKeys.slice(0, 5));
       setSelectedHandlingKeys(monthlyDetailedStats.handlingKeys.slice(0, 5));
       setInitialized(true);
     }
-  }, [monthlyDetailedStats, initialized]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monthlyDetailedStats.inputStatusKeys.length, initialized]);
 
   const toggleKey = (key: string, list: string[], setList: (l: string[]) => void) => {
     if (list.includes(key)) {
@@ -471,7 +597,7 @@ export default function SummaryTabContent({ tabsDataPayload }: { tabsDataPayload
                 </thead>
                 <tbody>
                   {monthlyData.map((mon, index) => (
-                    <tr key={mon.name} className={`hover:bg-slate-50 transition-colors ${index !== monthlyData.length - 1 ? 'border-b border-slate-200' : ''}`}>
+                    <tr key={mon.id} className={`hover:bg-slate-50 transition-colors ${index !== monthlyData.length - 1 ? 'border-b border-slate-200' : ''}`}>
                       <td className="px-4 py-3 text-xs font-bold text-slate-900">{mon.name}</td>
                       <td className="px-4 py-3 text-xs text-slate-600 text-right font-medium">{mon.Tổng.toLocaleString()}</td>
                       <td className="px-4 py-3 text-xs text-emerald-600 font-bold text-right">{mon.Ghép_Thành_Công.toLocaleString()}</td>
