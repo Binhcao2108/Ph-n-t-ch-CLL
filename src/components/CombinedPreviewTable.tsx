@@ -921,10 +921,10 @@ export default function CombinedPreviewTable({ records, chartFilter, onClearChar
               <th rowSpan={2} className="p-3 bg-slate-100 text-[10px] font-bold text-slate-700 uppercase tracking-widest text-center w-40 sticky left-0 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.1)] border-r border-slate-300 font-mono">
                 Số HĐ
               </th>
-              <th colSpan={7} className="p-3 bg-slate-900 text-[12px] font-black text-white text-center tracking-widest border-r border-slate-800 uppercase font-mono shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]">
+              <th colSpan={7} className="py-4 px-3 bg-slate-900 text-[14px] font-black text-white text-center tracking-wider border-r border-slate-800 uppercase shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]">
                 LẦN 1 (Chất lượng phát sóng - Báo hỏng)
               </th>
-              <th colSpan={7} className="p-3 bg-emerald-800 text-[12px] font-black text-white text-center tracking-widest uppercase font-mono shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]">
+              <th colSpan={7} className="py-4 px-3 bg-emerald-800 text-[14px] font-black text-white text-center tracking-wider uppercase shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]">
                 LẦN 2 (Chất lượng luồng - CLL)
               </th>
             </tr>

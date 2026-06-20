@@ -15,7 +15,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  LabelList
+  LabelList,
+  Cell
 } from 'recharts';
 import { Filter, Users, ShieldAlert, Server, Info, Download, XCircle, Image as ImageIcon } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -46,33 +47,30 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
 
   const crossFilteredRecords = useMemo(() => {
     if (filters.length === 0) return filteredRecords;
-    let result = filteredRecords;
-    filters.forEach(filter => {
-      result = result.filter(r => {
-        if (filter.type === 'inputStatus') {
-          const val = filter.level === 'l1' ? r.inputStatusL1 : r.inputStatusL2;
+    
+    // Group filters by Category+Level
+    const groupedFilters = filters.reduce((acc, f) => {
+      const key = `${f.type}_${f.level}`;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(f);
+      return acc;
+    }, {} as Record<string, FilterCondition[]>);
+
+    return filteredRecords.filter(r => {
+      // AND across all groups
+      return Object.values(groupedFilters).every(filterGroup => {
+        // OR within the group
+        return filterGroup.some(filter => {
+          let val;
+          if (filter.type === 'inputStatus') val = filter.level === 'l1' ? r.inputStatusL1 : r.inputStatusL2;
+          else if (filter.type === 'errorElement') val = filter.level === 'l1' ? r.errorElementL1 : r.errorElementL2;
+          else if (filter.type === 'errorCause') val = filter.level === 'l1' ? r.errorCauseL1 : r.errorCauseL2;
+          else if (filter.type === 'handling') val = filter.level === 'l1' ? r.handlingL1 : r.handlingL2;
+          else if (filter.type === 'staff') val = filter.level === 'l1' ? r.staffL1 : r.staffL2;
           return val === filter.name;
-        }
-        if (filter.type === 'errorElement') {
-          const val = filter.level === 'l1' ? r.errorElementL1 : r.errorElementL2;
-          return val === filter.name;
-        }
-        if (filter.type === 'errorCause') {
-          const val = filter.level === 'l1' ? r.errorCauseL1 : r.errorCauseL2;
-          return val === filter.name;
-        }
-        if (filter.type === 'handling') {
-          const val = filter.level === 'l1' ? r.handlingL1 : r.handlingL2;
-          return val === filter.name;
-        }
-        if (filter.type === 'staff') {
-          const val = filter.level === 'l1' ? r.staffL1 : r.staffL2;
-          return val === filter.name;
-        }
-        return false;
+        });
       });
     });
-    return result;
   }, [filteredRecords, filters]);
 
   const displayedDrilldownRecords = crossFilteredRecords;
@@ -80,25 +78,49 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
 
   const handleChartClick = (type: FilterCategory, name: string, level: 'l1' | 'l2') => {
     setFilters(prev => {
-      const existingIndex = prev.findIndex(f => f.type === type && f.level === level);
+      const existingIndex = prev.findIndex(f => f.type === type && f.level === level && f.name === name);
       if (existingIndex >= 0) {
-        if (prev[existingIndex].name === name) {
-          return prev.filter((_, i) => i !== existingIndex);
-        } else {
-          const newFilters = [...prev];
-          newFilters[existingIndex] = { type, name, level };
-          return newFilters;
-        }
+        return prev.filter((_, i) => i !== existingIndex);
       }
       return [...prev, { type, name, level }];
     });
   };
 
-  const buildTop10 = (keyGetter: (r: any) => string) => {
+  const getRecordsForChart = (currentType: string, currentLevel: string) => {
+    if (filters.length === 0) return filteredRecords;
+    
+    // Group filters by Category+Level
+    const groupedFilters = filters.reduce((acc, f) => {
+      const key = `${f.type}_${f.level}`;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(f);
+      return acc;
+    }, {} as Record<string, FilterCondition[]>);
+
+    const keyToExclude = `${currentType}_${currentLevel}`;
+
+    return filteredRecords.filter(r => {
+      return Object.entries(groupedFilters).every(([key, filterGroup]) => {
+        if (key === keyToExclude) return true; // Ignore filters from the same chart
+        
+        return filterGroup.some(filter => {
+          let val;
+          if (filter.type === 'inputStatus') val = filter.level === 'l1' ? r.inputStatusL1 : r.inputStatusL2;
+          else if (filter.type === 'errorElement') val = filter.level === 'l1' ? r.errorElementL1 : r.errorElementL2;
+          else if (filter.type === 'errorCause') val = filter.level === 'l1' ? r.errorCauseL1 : r.errorCauseL2;
+          else if (filter.type === 'handling') val = filter.level === 'l1' ? r.handlingL1 : r.handlingL2;
+          else if (filter.type === 'staff') val = filter.level === 'l1' ? r.staffL1 : r.staffL2;
+          return val === filter.name;
+        });
+      });
+    });
+  };
+
+  const buildTop10 = (records: any[], keyGetter: (r: any) => string) => {
     const counts: Record<string, number> = {};
     let totalValid = 0;
 
-    crossFilteredRecords.forEach(r => {
+    records.forEach(r => {
       const val = keyGetter(r);
       if (val && val !== '-' && val.trim() !== '') {
         counts[val] = (counts[val] || 0) + 1;
@@ -116,20 +138,20 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
     return arr.slice(0, 10);
   };
 
-  const topInputStatusL1 = useMemo(() => buildTop10(r => r.inputStatusL1), [crossFilteredRecords]);
-  const topInputStatusL2 = useMemo(() => buildTop10(r => r.inputStatusL2), [crossFilteredRecords]);
+  const topInputStatusL1 = useMemo(() => buildTop10(getRecordsForChart('inputStatus', 'l1'), r => r.inputStatusL1), [filteredRecords, filters]);
+  const topInputStatusL2 = useMemo(() => buildTop10(getRecordsForChart('inputStatus', 'l2'), r => r.inputStatusL2), [filteredRecords, filters]);
 
-  const topErrorElementL1 = useMemo(() => buildTop10(r => r.errorElementL1), [crossFilteredRecords]);
-  const topErrorElementL2 = useMemo(() => buildTop10(r => r.errorElementL2), [crossFilteredRecords]);
+  const topErrorElementL1 = useMemo(() => buildTop10(getRecordsForChart('errorElement', 'l1'), r => r.errorElementL1), [filteredRecords, filters]);
+  const topErrorElementL2 = useMemo(() => buildTop10(getRecordsForChart('errorElement', 'l2'), r => r.errorElementL2), [filteredRecords, filters]);
 
-  const topErrorCauseL1 = useMemo(() => buildTop10(r => r.errorCauseL1), [crossFilteredRecords]);
-  const topErrorCauseL2 = useMemo(() => buildTop10(r => r.errorCauseL2), [crossFilteredRecords]);
+  const topErrorCauseL1 = useMemo(() => buildTop10(getRecordsForChart('errorCause', 'l1'), r => r.errorCauseL1), [filteredRecords, filters]);
+  const topErrorCauseL2 = useMemo(() => buildTop10(getRecordsForChart('errorCause', 'l2'), r => r.errorCauseL2), [filteredRecords, filters]);
 
-  const topHandlingL1 = useMemo(() => buildTop10(r => r.handlingL1), [crossFilteredRecords]);
-  const topHandlingL2 = useMemo(() => buildTop10(r => r.handlingL2), [crossFilteredRecords]);
+  const topHandlingL1 = useMemo(() => buildTop10(getRecordsForChart('handling', 'l1'), r => r.handlingL1), [filteredRecords, filters]);
+  const topHandlingL2 = useMemo(() => buildTop10(getRecordsForChart('handling', 'l2'), r => r.handlingL2), [filteredRecords, filters]);
 
-  const topStaffL1 = useMemo(() => buildTop10(r => r.staffL1), [crossFilteredRecords]);
-  const topStaffL2 = useMemo(() => buildTop10(r => r.staffL2), [crossFilteredRecords]);
+  const topStaffL1 = useMemo(() => buildTop10(getRecordsForChart('staff', 'l1'), r => r.staffL1), [filteredRecords, filters]);
+  const topStaffL2 = useMemo(() => buildTop10(getRecordsForChart('staff', 'l2'), r => r.staffL2), [filteredRecords, filters]);
 
   const exportToExcel = () => {
     const dataDetail = displayedDrilldownRecords.map((record, index) => {
@@ -342,12 +364,21 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
                 <Bar 
                   dataKey="count" 
-                  fill={color} 
                   radius={[0, 4, 4, 0]} 
                   maxBarSize={32}
                   onClick={(data) => handleChartClick(type, data.name, level)}
                   className="cursor-pointer hover:opacity-80 transition-opacity"
                 >
+                  {data.map((entry, index) => {
+                    const isSelected = filters.some(f => f.type === type && f.name === entry.name && f.level === level);
+                    return (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={isSelected ? '#f59e0b' : color} // Amber color for highlighted bar
+                        opacity={filters.some(f => f.type === type && f.level === level) && !isSelected ? 0.3 : 1}
+                      />
+                    );
+                  })}
                   <LabelList 
                     dataKey="count" 
                     position="right" 
