@@ -273,23 +273,24 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, wsData, "Dữ liệu chi tiết");
     
-    XLSX.utils.book_append_sheet(wb, wsInputStatusL1, "Top 10 TTrạng L1");
-    XLSX.utils.book_append_sheet(wb, wsInputStatusL2, "Top 10 TTrạng L2");
+    XLSX.utils.book_append_sheet(wb, wsInputStatusL1, "Top 10 TinhTrang L1");
+    XLSX.utils.book_append_sheet(wb, wsInputStatusL2, "Top 10 TinhTrang L2");
     
-    XLSX.utils.book_append_sheet(wb, wsErrorElementL1, "Top 10 P/tử L1");
-    XLSX.utils.book_append_sheet(wb, wsErrorElementL2, "Top 10 P/tử L2");
+    XLSX.utils.book_append_sheet(wb, wsErrorElementL1, "Top 10 PhanTu L1");
+    XLSX.utils.book_append_sheet(wb, wsErrorElementL2, "Top 10 PhanTu L2");
     
-    XLSX.utils.book_append_sheet(wb, wsErrorCauseL1, "Top 10 N/nhân L1");
-    XLSX.utils.book_append_sheet(wb, wsErrorCauseL2, "Top 10 N/nhân L2");
+    XLSX.utils.book_append_sheet(wb, wsErrorCauseL1, "Top 10 NguyenNhan L1");
+    XLSX.utils.book_append_sheet(wb, wsErrorCauseL2, "Top 10 NguyenNhan L2");
     
-    XLSX.utils.book_append_sheet(wb, wsHandlingL1, "Top 10 Hướng L1");
-    XLSX.utils.book_append_sheet(wb, wsHandlingL2, "Top 10 Hướng L2");
+    XLSX.utils.book_append_sheet(wb, wsHandlingL1, "Top 10 HuongXuLy L1");
+    XLSX.utils.book_append_sheet(wb, wsHandlingL2, "Top 10 HuongXuLy L2");
     
-    XLSX.utils.book_append_sheet(wb, wsStaffL1, "Top 10 NV L1");
-    XLSX.utils.book_append_sheet(wb, wsStaffL2, "Top 10 NV L2");
+    XLSX.utils.book_append_sheet(wb, wsStaffL1, "Top 10 NhanVien L1");
+    XLSX.utils.book_append_sheet(wb, wsStaffL2, "Top 10 NhanVien L2");
 
-    const activeFilters = filters.length > 0 ? filters.map(f => f.name).join('_') : 'all';
-    const fileName = `chi_tiet_top10_${selectedMonthId === 'all' ? 'tong_hop' : selectedMonthId}_${activeFilters}.xlsx`;
+    const activeFilters = filters.length > 0 ? filters.map(f => f.name).join('_').replace(/[<>:"\/\\|?*]+/g, '-') : 'all';
+    const filterSuffix = activeFilters.length > 50 ? activeFilters.substring(0, 50) + '...' : activeFilters;
+    const fileName = `chi_tiet_top10_${selectedMonthId === 'all' ? 'tong_hop' : selectedMonthId}_${filterSuffix}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 
