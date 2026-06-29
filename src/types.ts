@@ -60,10 +60,6 @@ export interface MergedRecord {
   // Handling Staff
   staffL1?: string;
   staffL2?: string;
-  
-  // Area / Block
-  blockL1?: string;
-  blockL2?: string;
 }
 
 export interface ChartDataItem {

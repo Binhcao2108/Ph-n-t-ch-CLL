@@ -1,71 +1,48 @@
-import { useState, useMemo } from "react";
-import UploadBox from "./UploadBox";
-import DashboardStats from "./DashboardStats";
-import DashboardCharts from "./DashboardCharts";
-import TransitionsTable from "./TransitionsTable";
-import CombinedPreviewTable from "./CombinedPreviewTable";
+import { useState, useMemo } from 'react';
+import UploadBox from './UploadBox';
+import DashboardStats from './DashboardStats';
+import DashboardCharts from './DashboardCharts';
+import TransitionsTable from './TransitionsTable';
+import CombinedPreviewTable from './CombinedPreviewTable';
 
-import {
-  readExcelFile,
-  processCLLData,
-  calculateStatistics,
-  exportToExcel,
-} from "../utils/excelProcessor";
-import { MergedRecord } from "../types";
-import { Download, Check, Sparkles, FileType } from "lucide-react";
+import { 
+  readExcelFile, 
+  processCLLData, 
+  calculateStatistics, 
+  exportToExcel 
+} from '../utils/excelProcessor';
+import { MergedRecord } from '../types';
+import { Download, Check, Sparkles, FileType } from 'lucide-react';
 
-export default function MonthTabContent({
-  tabName,
-  onDataUpdate,
-}: {
-  tabName: string;
-  onDataUpdate?: (records: MergedRecord[]) => void;
-}) {
+export default function MonthTabContent({ tabName, onDataUpdate }: { tabName: string, onDataUpdate?: (records: MergedRecord[]) => void }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
+  
   // Data State
   const [mergedRecords, setMergedRecords] = useState<MergedRecord[]>([]);
   const [selectedStaffL1, setSelectedStaffL1] = useState<string[]>([]);
   const [selectedStaffL2, setSelectedStaffL2] = useState<string[]>([]);
-  const [selectedBlock, setSelectedBlock] = useState<string[]>([]);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [chartFilter, setChartFilter] = useState<{
-    type:
-      | "inputStatus"
-      | "errorElement"
-      | "errorCause"
-      | "handling"
-      | "staff"
-      | "staffL1"
-      | "staffL2"
-      | "block";
-    value: string;
-  } | null>(null);
+  const [chartFilter, setChartFilter] = useState<{ type: 'inputStatus' | 'errorElement' | 'errorCause' | 'handling' | 'staff' | 'staffL1' | 'staffL2'; value: string } | null>(null);
 
-  const handleFilesSelected = async (files: {
-    cllFile: File;
-    dhTFile: File;
-    dhPrevFile: File;
-  }) => {
+  const handleFilesSelected = async (files: { cllFile: File; dhTFile: File; dhPrevFile: File }) => {
     setIsProcessing(true);
     setErrorMsg(null);
     setSuccessMsg(null);
     setChartFilter(null);
     setSelectedStaffL1([]);
     setSelectedStaffL2([]);
-    setSelectedBlock([]);
 
     try {
       // 1. Read files concurrently
       const [cllRaw, dhTRaw, dhPrevRaw] = await Promise.all([
         readExcelFile(files.cllFile),
         readExcelFile(files.dhTFile),
-        readExcelFile(files.dhPrevFile),
+        readExcelFile(files.dhPrevFile)
       ]);
 
       if (!cllRaw || cllRaw.length === 0) {
-        throw new Error("File CLL không chứa dòng dữ liệu nào.");
+        throw new Error('File CLL không chứa dòng dữ liệu nào.');
       }
 
       // Combine BOTH ĐÚNG HẸN T and T-1 rows
@@ -76,15 +53,10 @@ export default function MonthTabContent({
 
       setMergedRecords(merged);
       if (onDataUpdate) onDataUpdate(merged);
-      setSuccessMsg(
-        `Đã phân tích thành công ${merged.length} hồ sơ từ tệp và ghép nối thành công ${merged.filter((r) => r.status === "SUCCESS").length} hồ sơ!`,
-      );
+      setSuccessMsg(`Đã phân tích thành công ${merged.length} hồ sơ từ tệp và ghép nối thành công ${merged.filter(r => r.status === 'SUCCESS').length} hồ sơ!`);
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(
-        err.message ||
-          "Có lỗi xảy ra trong quá trình đọc và kết nối dữ liệu. Vui lòng xác nhận cấu trúc file hợp lệ.",
-      );
+      setErrorMsg(err.message || 'Có lỗi xảy ra trong quá trình đọc và kết nối dữ liệu. Vui lòng xác nhận cấu trúc file hợp lệ.');
     } finally {
       setIsProcessing(false);
     }
@@ -92,35 +64,29 @@ export default function MonthTabContent({
 
   // 1. Filter records reactively by selected staff L1 and/or L2
   const staffFilteredRecords = useMemo(() => {
-    return mergedRecords.filter((rec) => {
+    return mergedRecords.filter(rec => {
       if (selectedStaffL1.length > 0) {
-        const s1 = (rec.staffL1 || "").trim();
+        const s1 = (rec.staffL1 || '').trim();
         if (!selectedStaffL1.includes(s1)) return false;
       }
       if (selectedStaffL2.length > 0) {
-        const s2 = (rec.staffL2 || "").trim();
+        const s2 = (rec.staffL2 || '').trim();
         if (!selectedStaffL2.includes(s2)) return false;
-      }
-      if (selectedBlock.length > 0) {
-        const b = (rec.blockL2 || rec.blockL1 || "").trim();
-        if (!selectedBlock.includes(b)) return false;
       }
       return true;
     });
-  }, [mergedRecords, selectedStaffL1, selectedStaffL2, selectedBlock]);
+  }, [mergedRecords, selectedStaffL1, selectedStaffL2]);
 
   // 2. Compute the current summary statistics for the filtered records
   const summaryStats = useMemo(() => {
     if (mergedRecords.length === 0) return null;
     const totalCLL = staffFilteredRecords.length;
-    const totalMerged = staffFilteredRecords.filter(
-      (r) => r.status === "SUCCESS",
-    ).length;
+    const totalMerged = staffFilteredRecords.filter(r => r.status === 'SUCCESS').length;
     const totalNotFound = totalCLL - totalMerged;
     return {
       totalCLL,
       totalMerged,
-      totalNotFound,
+      totalNotFound
     };
   }, [staffFilteredRecords, mergedRecords.length]);
 
@@ -133,7 +99,7 @@ export default function MonthTabContent({
   // 4. Extract unique employees list and counts separately for L1 and L2
   const masterStaffNamesL1 = useMemo(() => {
     const names = new Set<string>();
-    mergedRecords.forEach((rec) => {
+    mergedRecords.forEach(rec => {
       if (rec.staffL1 && rec.staffL1.trim()) names.add(rec.staffL1.trim());
     });
     return Array.from(names).sort((a, b) => a.localeCompare(b));
@@ -141,7 +107,7 @@ export default function MonthTabContent({
 
   const masterStaffNamesL2 = useMemo(() => {
     const names = new Set<string>();
-    mergedRecords.forEach((rec) => {
+    mergedRecords.forEach(rec => {
       if (rec.staffL2 && rec.staffL2.trim()) {
         names.add(rec.staffL2.trim());
       }
@@ -151,8 +117,8 @@ export default function MonthTabContent({
 
   const masterStaffCountsL1 = useMemo(() => {
     const counts: Record<string, number> = {};
-    mergedRecords.forEach((rec) => {
-      const s1 = (rec.staffL1 || "").trim();
+    mergedRecords.forEach(rec => {
+      const s1 = (rec.staffL1 || '').trim();
       if (s1) {
         counts[s1] = (counts[s1] || 0) + 1;
       }
@@ -162,30 +128,10 @@ export default function MonthTabContent({
 
   const masterStaffCountsL2 = useMemo(() => {
     const counts: Record<string, number> = {};
-    mergedRecords.forEach((rec) => {
-      const s2 = (rec.staffL2 || "").trim();
+    mergedRecords.forEach(rec => {
+      const s2 = (rec.staffL2 || '').trim();
       if (s2) {
         counts[s2] = (counts[s2] || 0) + 1;
-      }
-    });
-    return counts;
-  }, [mergedRecords]);
-
-  const masterBlockNames = useMemo(() => {
-    const names = new Set<string>();
-    mergedRecords.forEach((rec) => {
-      const b = (rec.blockL2 || rec.blockL1 || "").trim();
-      if (b) names.add(b);
-    });
-    return Array.from(names).sort((a, b) => a.localeCompare(b));
-  }, [mergedRecords]);
-
-  const masterBlockCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    mergedRecords.forEach((rec) => {
-      const b = (rec.blockL2 || rec.blockL1 || "").trim();
-      if (b) {
-        counts[b] = (counts[b] || 0) + 1;
       }
     });
     return counts;
@@ -197,19 +143,18 @@ export default function MonthTabContent({
     try {
       const blob = await exportToExcel(staffFilteredRecords, chartData);
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
       const totalSelected = selectedStaffL1.length + selectedStaffL2.length;
-      a.download =
-        totalSelected > 0
-          ? `PhanTichCLL_NhanVien_${totalSelected}_nhansu.xlsx`
-          : `PhanTichCLL_${tabName}.xlsx`;
+      a.download = totalSelected > 0 
+        ? `PhanTichCLL_NhanVien_${totalSelected}_nhansu.xlsx`
+        : `PhanTichCLL_${tabName}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert("Không thể xuất file excel: " + err.message);
+      alert('Không thể xuất file excel: ' + err.message);
     } finally {
       setIsProcessing(false);
     }
@@ -218,41 +163,21 @@ export default function MonthTabContent({
   const getFilteredChartRecords = () => {
     if (!chartFilter) return [];
     const { type, value } = chartFilter;
-    return staffFilteredRecords.filter((rec) => {
-      if (type === "inputStatus") {
-        return (
-          (rec.inputStatusL1 || "").trim() === value ||
-          (rec.inputStatusL2 || "").trim() === value
-        );
-      } else if (type === "errorElement") {
-        return (
-          (rec.errorElementL1 || "").trim() === value ||
-          (rec.errorElementL2 || "").trim() === value
-        );
-      } else if (type === "errorCause") {
-        return (
-          (rec.errorCauseL1 || "").trim() === value ||
-          (rec.errorCauseL2 || "").trim() === value
-        );
-      } else if (type === "handling") {
-        return (
-          (rec.handlingL1 || "").trim() === value ||
-          (rec.handlingL2 || "").trim() === value
-        );
-      } else if (type === "staffL1") {
-        return (rec.staffL1 || "").trim() === value;
-      } else if (type === "staffL2") {
-        return (rec.staffL2 || "").trim() === value;
-      } else if (type === "staff") {
-        return (
-          (rec.staffL1 || "").trim() === value ||
-          (rec.staffL2 || "").trim() === value
-        );
-      } else if (type === "block") {
-        return (
-          (rec.blockL1 || "").trim() === value ||
-          (rec.blockL2 || "").trim() === value
-        );
+    return staffFilteredRecords.filter(rec => {
+      if (type === 'inputStatus') {
+        return (rec.inputStatusL1 || '').trim() === value || (rec.inputStatusL2 || '').trim() === value;
+      } else if (type === 'errorElement') {
+        return (rec.errorElementL1 || '').trim() === value || (rec.errorElementL2 || '').trim() === value;
+      } else if (type === 'errorCause') {
+        return (rec.errorCauseL1 || '').trim() === value || (rec.errorCauseL2 || '').trim() === value;
+      } else if (type === 'handling') {
+        return (rec.handlingL1 || '').trim() === value || (rec.handlingL2 || '').trim() === value;
+      } else if (type === 'staffL1') {
+        return (rec.staffL1 || '').trim() === value;
+      } else if (type === 'staffL2') {
+        return (rec.staffL2 || '').trim() === value;
+      } else if (type === 'staff') {
+        return (rec.staffL1 || '').trim() === value || (rec.staffL2 || '').trim() === value;
       }
       return true;
     });
@@ -268,16 +193,16 @@ export default function MonthTabContent({
       const statsObj = calculateStatistics(filteredChartRecords);
       const blob = await exportToExcel(filteredChartRecords, statsObj);
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
-      const safeVal = chartFilter.value.replace(/[^a-zA-Z0-9À-ỹ\s-_]/g, "");
+      const safeVal = chartFilter.value.replace(/[^a-zA-Z0-9À-ỹ\s-_]/g, '');
       a.download = `PhanTichCLL_${chartFilter.type}_${safeVal}_${filteredChartCount}_dong.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert("Không thể xuất file excel bộ lọc: " + err.message);
+      alert('Không thể xuất file excel bộ lọc: ' + err.message);
     } finally {
       setIsProcessing(false);
     }
@@ -296,59 +221,40 @@ export default function MonthTabContent({
             KTCN
           </h2>
           <p className="text-slate-600 text-xs mt-2 font-medium leading-relaxed">
-            Tải lên báo cáo CLL và các báo cáo ĐÚNG HẸN tháng tương ứng với tab.
-            Hệ thống sẽ kết xuất tự động dịch chuyển chất lượng báo hỏng, tổng
-            hợp phiếu lần 1 - lần 2 và đối chiếu chênh lệch chính xác.
+            Tải lên báo cáo CLL và các báo cáo ĐÚNG HẸN tháng tương ứng với tab. Hệ thống sẽ kết xuất tự động dịch chuyển chất lượng báo hỏng, tổng hợp phiếu lần 1 - lần 2 và đối chiếu chênh lệch chính xác.
           </p>
         </div>
-
+        
         <div className="shrink-0 relative z-10 flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <div className="text-center md:text-right text-[10px] text-slate-705 bg-slate-100 border border-slate-900 rounded-none p-3.5 font-mono font-bold uppercase tracking-wider">
             <p className="font-bold text-slate-900">ĐÚNG HẸN {tabName}</p>
-            <p className="mt-1 text-slate-500 text-[9px]">
-              Ưu tiên Số HĐ + Thời gian
-            </p>
+            <p className="mt-1 text-slate-500 text-[9px]">Ưu tiên Số HĐ + Thời gian</p>
           </div>
         </div>
       </section>
 
       {/* Upload dropbox section */}
       <section id="upload-zone">
-        <UploadBox
-          onFilesSelected={handleFilesSelected}
-          isProcessing={isProcessing}
-        />
+        <UploadBox onFilesSelected={handleFilesSelected} isProcessing={isProcessing} />
       </section>
 
       {/* Status Alerts */}
       {errorMsg && (
         <div className="bg-rose-50 border border-rose-900 text-rose-950 px-5 py-4 rounded-none flex items-start gap-3">
-          <span className="p-1.5 bg-rose-100 text-rose-900 border border-rose-400 rounded-none shrink-0 font-bold text-xs">
-            ⚠️
-          </span>
+          <span className="p-1.5 bg-rose-100 text-rose-900 border border-rose-400 rounded-none shrink-0 font-bold text-xs">⚠️</span>
           <div>
-            <p className="font-black text-xs font-mono uppercase tracking-wider">
-              Xử lý tài liệu thất bại
-            </p>
-            <p className="text-xs text-rose-700 mt-1 font-semibold">
-              {errorMsg}
-            </p>
+            <p className="font-black text-xs font-mono uppercase tracking-wider">Xử lý tài liệu thất bại</p>
+            <p className="text-xs text-rose-700 mt-1 font-semibold">{errorMsg}</p>
           </div>
         </div>
       )}
 
       {successMsg && (
         <div className="bg-emerald-50 border border-emerald-900 text-emerald-950 px-5 py-4 rounded-none flex items-start gap-3">
-          <span className="p-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-none shrink-0">
-            <Check className="h-4 w-4" />
-          </span>
+          <span className="p-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-none shrink-0"><Check className="h-4 w-4" /></span>
           <div>
-            <p className="font-black text-xs font-mono uppercase tracking-wider">
-              Xử lý thông tin hoàn tất!
-            </p>
-            <p className="text-xs text-emerald-700 mt-1 font-semibold">
-              {successMsg}
-            </p>
+            <p className="font-black text-xs font-mono uppercase tracking-wider">Xử lý thông tin hoàn tất!</p>
+            <p className="text-xs text-emerald-700 mt-1 font-semibold">{successMsg}</p>
           </div>
         </div>
       )}
@@ -362,7 +268,7 @@ export default function MonthTabContent({
               <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
                 Chỉ số tổng hợp kết quả
               </h3>
-
+              
               {/* Export excel control */}
               <button
                 type="button"
@@ -387,7 +293,6 @@ export default function MonthTabContent({
               staffL1Data={chartData.chartStaffL1}
               staffL2Data={chartData.chartStaffL2}
               staffData={chartData.chartStaff}
-              blockData={chartData.chartBlock}
               chartFilter={chartFilter}
               onChartClick={(type, value) => {
                 setChartFilter({ type, value });
@@ -409,13 +314,6 @@ export default function MonthTabContent({
                 setChartFilter(null);
               }}
               staffCountsL2={masterStaffCountsL2}
-              allBlockList={masterBlockNames}
-              selectedBlock={selectedBlock}
-              onBlockSelectionChange={(block) => {
-                setSelectedBlock(block);
-                setChartFilter(null);
-              }}
-              blockCounts={masterBlockCounts}
             />
           </div>
 
@@ -426,8 +324,8 @@ export default function MonthTabContent({
 
           {/* 3. Detailed Data preview sheet */}
           <section>
-            <CombinedPreviewTable
-              records={staffFilteredRecords}
+            <CombinedPreviewTable 
+              records={staffFilteredRecords} 
               chartFilter={chartFilter}
               onClearChartFilter={() => setChartFilter(null)}
             />
@@ -439,55 +337,32 @@ export default function MonthTabContent({
       {!summaryStats && (
         <section className="bg-white rounded-none border border-slate-900 p-8 shadow-[4px_4px_0px_rgba(15,23,42,0.1)] text-center flex flex-col items-center justify-center py-16">
           <FileType className="h-12 w-12 text-slate-300 mb-4 stroke-1" />
-          <h3 className="text-md font-black text-slate-900 uppercase tracking-tight">
-            Sẵn sàng phân tích chất lượng xử lý - {tabName}
-          </h3>
+          <h3 className="text-md font-black text-slate-900 uppercase tracking-tight">Sẵn sàng phân tích chất lượng xử lý - {tabName}</h3>
           <p className="text-xs text-slate-500 mt-2 max-w-sm mx-auto leading-relaxed font-medium">
-            Vui lòng tải lên đầy đủ 3 file Excel được đề xuất phía đầu trang,
-            sau đó bấm nút <b className="text-slate-900">"Phân tích dữ liệu"</b>{" "}
-            để khởi chạy biểu đồ hiển thị.
+            Vui lòng tải lên đầy đủ 3 file Excel được đề xuất phía đầu trang, sau đó bấm nút <b className="text-slate-900">"Phân tích dữ liệu"</b> để khởi chạy biểu đồ hiển thị.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 w-full max-w-xl text-left">
             <div className="p-4 bg-slate-50 rounded-none border border-slate-200 flex gap-3 items-start shadow-[1px_1px_0px_rgba(0,0,0,0.03)]">
-              <span className="text-[10px] font-mono font-bold bg-slate-900 text-white rounded-none w-5 h-5 flex items-center justify-center shrink-0">
-                1
-              </span>
+              <span className="text-[10px] font-mono font-bold bg-slate-900 text-white rounded-none w-5 h-5 flex items-center justify-center shrink-0">1</span>
               <div>
-                <h4 className="text-xs font-black uppercase text-slate-800 font-mono tracking-wider">
-                  CLL THÁNG T.xlsx
-                </h4>
-                <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
-                  Thời điểm hoàn tất thực tế &amp; thông tin ban đầu mốc xử lý
-                  Lần 1.
-                </p>
+                <h4 className="text-xs font-black uppercase text-slate-800 font-mono tracking-wider">CLL THÁNG T.xlsx</h4>
+                <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">Thời điểm hoàn tất thực tế &amp; thông tin ban đầu mốc xử lý Lần 1.</p>
               </div>
             </div>
 
             <div className="p-4 bg-slate-50 rounded-none border border-slate-200 flex gap-3 items-start shadow-[1px_1px_0px_rgba(0,0,0,0.03)]">
-              <span className="text-[10px] font-mono font-bold bg-slate-900 text-white rounded-none w-5 h-5 flex items-center justify-center shrink-0">
-                2
-              </span>
+              <span className="text-[10px] font-mono font-bold bg-slate-900 text-white rounded-none w-5 h-5 flex items-center justify-center shrink-0">2</span>
               <div>
-                <h4 className="text-xs font-black uppercase text-slate-800 font-mono tracking-wider">
-                  ĐÚNG HẸN THÁNG T
-                </h4>
-                <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
-                  Bản ghi đối ứng phát sinh checklist để ghép lần 2.
-                </p>
+                <h4 className="text-xs font-black uppercase text-slate-800 font-mono tracking-wider">ĐÚNG HẸN THÁNG T</h4>
+                <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">Bản ghi đối ứng phát sinh checklist để ghép lần 2.</p>
               </div>
             </div>
 
             <div className="p-4 bg-slate-50 rounded-none border border-slate-200 flex gap-3 items-start shadow-[1px_1px_0px_rgba(0,0,0,0.03)]">
-              <span className="text-[10px] font-mono font-bold bg-slate-900 text-white rounded-none w-5 h-5 flex items-center justify-center shrink-0">
-                3
-              </span>
+              <span className="text-[10px] font-mono font-bold bg-slate-900 text-white rounded-none w-5 h-5 flex items-center justify-center shrink-0">3</span>
               <div>
-                <h4 className="text-xs font-black uppercase text-slate-800 font-mono tracking-wider">
-                  ĐÚNG HẸN THÁNG T-1
-                </h4>
-                <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
-                  Dữ liệu bù đắp các ca hoàn tất từ mép cuối tháng liền kề.
-                </p>
+                <h4 className="text-xs font-black uppercase text-slate-800 font-mono tracking-wider">ĐÚNG HẸN THÁNG T-1</h4>
+                <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">Dữ liệu bù đắp các ca hoàn tất từ mép cuối tháng liền kề.</p>
               </div>
             </div>
           </div>
