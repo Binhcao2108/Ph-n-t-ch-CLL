@@ -18,7 +18,7 @@ import {
   LabelList,
   Cell
 } from 'recharts';
-import { Filter, Users, ShieldAlert, Server, Info, Download, XCircle, Image as ImageIcon } from 'lucide-react';
+import { Filter, Users, ShieldAlert, Server, Info, Download, XCircle, Image as ImageIcon, MapPin } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface Top10TabContentProps {
@@ -28,7 +28,7 @@ interface Top10TabContentProps {
 export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProps) {
   const [selectedMonthId, setSelectedMonthId] = useState<string>('all');
   
-  type FilterCategory = 'inputStatus' | 'errorElement' | 'errorCause' | 'handling' | 'staff';
+  type FilterCategory = 'inputStatus' | 'errorElement' | 'errorCause' | 'handling' | 'staff' | 'block';
   interface FilterCondition {
     type: FilterCategory;
     name: string;
@@ -153,6 +153,9 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
   const topStaffL1 = useMemo(() => buildTop10(getRecordsForChart('staff', 'l1'), r => r.staffL1), [filteredRecords, filters]);
   const topStaffL2 = useMemo(() => buildTop10(getRecordsForChart('staff', 'l2'), r => r.staffL2), [filteredRecords, filters]);
 
+  const topBlockL1 = useMemo(() => buildTop10(getRecordsForChart('block', 'l1'), r => r.blockL1), [filteredRecords, filters]);
+  const topBlockL2 = useMemo(() => buildTop10(getRecordsForChart('block', 'l2'), r => r.blockL2), [filteredRecords, filters]);
+
   const exportToExcel = () => {
     const dataDetail = displayedDrilldownRecords.map((record, index) => {
       const row: any = { "STT": index + 1 };
@@ -169,6 +172,7 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
       row["Nguyên nhân (CLL)"] = record.errorCauseL1 || '-';
       row["Hướng xử lý (CLL)"] = record.handlingL1 || '-';
       row["Nhân viên (CLL)"] = record.staffL1 || '-';
+      row["Khu vực (CLL)"] = record.blockL1 || '-';
 
       // L2 (CLPS)
       row["Tg hoàn tất (CLPS)"] = record.completedTimeL2 || '-';
@@ -178,6 +182,7 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
       row["Nguyên nhân (CLPS)"] = record.errorCauseL2 || '-';
       row["Hướng xử lý (CLPS)"] = record.handlingL2 || '-';
       row["Nhân viên (CLPS)"] = record.staffL2 || '-';
+      row["Khu vực (CLPS)"] = record.blockL2 || '-';
       
       return row;
     });
@@ -269,6 +274,9 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
     
     const wsStaffL1 = buildSheetData(r => r.staffL1);
     const wsStaffL2 = buildSheetData(r => r.staffL2);
+    
+    const wsBlockL1 = buildSheetData(r => r.blockL1);
+    const wsBlockL2 = buildSheetData(r => r.blockL2);
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, wsData, "Dữ liệu chi tiết");
@@ -287,6 +295,9 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
     
     XLSX.utils.book_append_sheet(wb, wsStaffL1, "Top 10 NhanVien L1");
     XLSX.utils.book_append_sheet(wb, wsStaffL2, "Top 10 NhanVien L2");
+
+    XLSX.utils.book_append_sheet(wb, wsBlockL1, "Top 10 KhuVuc L1");
+    XLSX.utils.book_append_sheet(wb, wsBlockL2, "Top 10 KhuVuc L2");
 
     const activeFilters = filters.length > 0 ? filters.map(f => f.name).join('_').replace(/[<>:"\/\\|?*]+/g, '-') : 'all';
     const filterSuffix = activeFilters.length > 50 ? activeFilters.substring(0, 50) + '...' : activeFilters;
@@ -340,7 +351,7 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
     return null;
   };
 
-  const renderChart = (data: any[], title: string, color: string, icon: React.ReactNode, type: 'inputStatus' | 'errorElement' | 'errorCause' | 'handling' | 'staff', level: 'l1' | 'l2') => {
+  const renderChart = (data: any[], title: string, color: string, icon: React.ReactNode, type: 'inputStatus' | 'errorElement' | 'errorCause' | 'handling' | 'staff' | 'block', level: 'l1' | 'l2') => {
     return (
       <div className="bg-white border border-slate-200 p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-4">
@@ -469,6 +480,10 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
           {renderChart(topStaffL1, 'Top 10 Nhân viên (L1 - CLPS)', '#10b981', <Users className="h-5 w-5" />, 'staff', 'l1')}
           {renderChart(topStaffL2, 'Top 10 Nhân viên (L2 - CLL)', '#047857', <Users className="h-5 w-5" />, 'staff', 'l2')}
         </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {renderChart(topBlockL1, 'Top 10 Khu vực (L1 - CLPS)', '#f97316', <MapPin className="h-5 w-5" />, 'block', 'l1')}
+          {renderChart(topBlockL2, 'Top 10 Khu vực (L2 - CLL)', '#c2410c', <MapPin className="h-5 w-5" />, 'block', 'l2')}
+        </div>
       </div>
 
       {filters.length > 0 && (
@@ -509,7 +524,8 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
                     <th rowSpan={2} className="px-4 py-2 text-center font-bold uppercase tracking-wider border-b border-r border-slate-700 w-12 align-middle">STT</th>
                     <th rowSpan={2} className="px-4 py-2 font-bold uppercase tracking-wider border-b border-r border-slate-700 align-middle text-center w-[120px]">Số HĐ</th>
                     <th colSpan={2} className="px-4 py-2 font-bold uppercase tracking-wider border-b border-r border-slate-700 text-center">Mã NV</th>
-                    <th colSpan={2} className="px-4 py-2 font-bold uppercase tracking-wider border-b border-r border-slate-700 text-center bg-slate-800/50">Tình trạng đầu vào</th>
+                    <th colSpan={2} className="px-4 py-2 font-bold uppercase tracking-wider border-b border-r border-slate-700 text-center bg-slate-800/50">Khu vực</th>
+                    <th colSpan={2} className="px-4 py-2 font-bold uppercase tracking-wider border-b border-r border-slate-700 text-center">Tình trạng đầu vào</th>
                     <th colSpan={2} className="px-4 py-2 font-bold uppercase tracking-wider border-b border-r border-slate-700 text-center">Phần tử lỗi</th>
                     <th colSpan={2} className="px-4 py-2 font-bold uppercase tracking-wider border-b border-r border-slate-700 text-center bg-slate-800/50">Nguyên nhân lỗi</th>
                     <th colSpan={2} className="px-4 py-2 font-bold uppercase tracking-wider border-b border-slate-700 text-center">Hướng xử lý</th>
@@ -517,6 +533,9 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
                   <tr className="bg-slate-800">
                     <th className="px-4 py-2 font-bold uppercase border-b border-r border-slate-700 text-center text-[10px] text-slate-300 w-[100px]">Lần 1 (CLPS)</th>
                     <th className="px-4 py-2 font-bold uppercase border-b border-r border-slate-700 text-center text-[10px] text-slate-300 w-[100px]">Lần 2 (CLL)</th>
+                    
+                    <th className="px-4 py-2 font-bold uppercase border-b border-r border-slate-700 text-center text-[10px] text-slate-300 min-w-[120px]">Lần 1 (CLPS)</th>
+                    <th className="px-4 py-2 font-bold uppercase border-b border-r border-slate-700 text-center text-[10px] text-slate-300 min-w-[120px]">Lần 2 (CLL)</th>
                     
                     <th className="px-4 py-2 font-bold uppercase border-b border-r border-slate-700 text-center text-[10px] text-slate-300 min-w-[160px]">Lần 1 (CLPS)</th>
                     <th className="px-4 py-2 font-bold uppercase border-b border-r border-slate-700 text-center text-[10px] text-slate-300 min-w-[160px]">Lần 2 (CLL)</th>
@@ -540,6 +559,9 @@ export default function Top10TabContent({ tabsDataPayload }: Top10TabContentProp
                         
                         <td className="px-4 py-2 border-r border-slate-200 font-bold font-mono text-center text-slate-700 bg-slate-50/50">{record.staffL2 || '-'}</td>
                         <td className="px-4 py-2 border-r border-slate-200 font-bold font-mono text-center text-emerald-700 bg-emerald-50/30">{record.staffL1 || '-'}</td>
+                        
+                        <td className="px-4 py-2 border-r border-slate-200 font-mono text-center text-slate-700 bg-slate-50/50">{record.blockL2 || '-'}</td>
+                        <td className="px-4 py-2 border-r border-slate-200 font-mono text-center text-emerald-700 bg-emerald-50/30">{record.blockL1 || '-'}</td>
                         
                         <td className="px-4 py-2 border-r border-slate-200 bg-slate-50/50">{record.inputStatusL2 || '-'}</td>
                         <td className="px-4 py-2 border-r border-slate-200 bg-emerald-50/30">{record.inputStatusL1 || '-'}</td>
