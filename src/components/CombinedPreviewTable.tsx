@@ -710,7 +710,7 @@ export default function CombinedPreviewTable({ records, chartFilter, onClearChar
         <div className="border border-slate-900 p-4 shadow-[2px_2px_0px_rgba(15,23,42,0.05)] bg-slate-50">
           <div className="flex items-center gap-2 mb-3 border-b border-slate-300 pb-2.5">
             <span className="w-2 h-4 bg-slate-950"></span>
-            <span className="text-[11px] font-black text-slate-900 uppercase font-mono tracking-wider">BỘ LỌC LẦN 1: BÁO HỎNG (L1)</span>
+            <span className="text-[11px] font-black text-slate-900 uppercase font-mono tracking-wider">BỘ LỌC CLL (L1)</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 font-mono">
             {/* Input Status Filter L1 */}
@@ -800,7 +800,7 @@ export default function CombinedPreviewTable({ records, chartFilter, onClearChar
         <div className="border border-slate-900 p-4 shadow-[2px_2px_0px_rgba(16,185,129,0.05)] bg-[#f0fdf4]">
           <div className="flex items-center gap-2 mb-3 border-b border-emerald-300 pb-2.5">
             <span className="w-2 h-4 bg-emerald-600"></span>
-            <span className="text-[11px] font-black text-emerald-800 uppercase font-mono tracking-wider">BỘ LỌC LẦN 2: CLPS / NGHIỆM THU (L2)</span>
+            <span className="text-[11px] font-black text-emerald-800 uppercase font-mono tracking-wider">BỘ LỌC CL BAN ĐẦU (L2)</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 font-mono">
             {/* Input Status Filter L2 */}

@@ -31,9 +31,14 @@ export default function Navbar() {
               <Activity className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                KTCN
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight">
+                  KTCN
+                </h1>
+                <span className="bg-amber-100 text-amber-800 text-[9px] px-1.5 py-0.5 rounded-none font-bold uppercase tracking-widest border border-amber-300">
+                  Phiên bản B 1.1
+                </span>
+              </div>
               <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                 Phân tích chất lượng xử lý tự động
               </p>

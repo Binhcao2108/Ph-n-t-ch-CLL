@@ -199,7 +199,7 @@ export default function DashboardCharts({
           {/* Dropdown Lần 2 (CLL) internally L1 */}
           {allStaffListL1.length > 0 && (
             <div className="flex items-center gap-2 relative z-50 animate-fade-in" ref={staffL1DropdownRef}>
-              <span className="text-[10px] uppercase font-mono font-bold text-slate-500">LỌC LẦN 2:</span>
+              <span className="text-[10px] uppercase font-mono font-bold text-slate-500">CL BAN ĐẦU:</span>
               <div className="relative">
                 <button
                   type="button"
@@ -293,7 +293,7 @@ export default function DashboardCharts({
           {/* Dropdown Lần 1 (CLPS) internally L2 */}
           {allStaffListL2.length > 0 && (
             <div className="flex items-center gap-2 relative z-50 animate-fade-in" ref={staffL2DropdownRef}>
-              <span className="text-[10px] uppercase font-mono font-bold text-slate-500">LỌC LẦN 1:</span>
+              <span className="text-[10px] uppercase font-mono font-bold text-slate-500">CLL:</span>
               <div className="relative">
                 <button
                   type="button"
